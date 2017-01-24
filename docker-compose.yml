@@ -1,0 +1,10 @@
+version: "2"
+services:
+  bitcore:
+    image:  patrickhempel/bitcore
+    ports:
+      - "0.0.0.0:3001:3001"
+      - "0.0.0.0:6667:6667"
+      - "0.0.0.0:8333:8333"
+volumes:
+  bitcore-data:
