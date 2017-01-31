@@ -14,16 +14,17 @@ module ZenWallet
                 vout: 1,
                 scriptPubKey: "76a914695723c38d2b6cdd0413abc0d42e93dfcf4d122788ac",
                 amount: 0.025,
-                satoshis: 2_500_000,
+                satoshis: 3_500_000,
                 height: 449_658,
                 confirmations: 2 }]
       outputs = [
         { satoshis: 1_100_000, address: "1J6jfYbkeCkjqKHTcvR7o7j9EPerx6m2hp" },
         { satoshis: 1_200_000, address: "1J79bxhrUMsrP1oPzqjLN92GZnwv4THDbX" }
       ]
-      commission = 500_000
+      fee = 500_000
       key_str = "eb226c93d37ea7901a5cd866369ba36e8936ea67c2a2449ff0"\
                 "ed6309c61da614"
+      key_wif = "L56nHS56YVyY2Pd73152MHeXeyP6tek4gspiV7KzqzrvcUnxmgNA"
       raw_tx = "01000000025bf6d5c66144dd7bd0056bdaa9bffc7b828d8b38a9b1d520a6"\
                "9cb8fa6c991c62000000006a47304402204a0999d20b6ed67c514ac9edda"\
                "3f46ee81e0f2bc13511c20a232979f7ff538cb02206dac2debafa8929d8e"\
@@ -37,10 +38,12 @@ module ZenWallet
                "ba221000000000001976a9144c350fe31afb8e85f641509259e48f2fcc1a"\
                "a07888aca0252600000000001976a914695723c38d2b6cdd0413abc0d42e"\
                "93dfcf4d122788ac56dc0600"
-      Browser.any_instance.expects(:raw_tx).with(txid).returns(raw_tx)
+      # Browser.any_instance.expects(:raw_tx).with(txid).returns(raw_tx)
       # Browser.any_instance.expects(:raw_tx).with("1").returns(raw_tx)
-      transaction = TransactionBuilder
-                    .build_transaction(utxo, outputs, commission, key_str)
+      transaction = TransactionBuilder.build_transaction(
+        utxo: utxo, outputs: outputs, fee: fee, private_key_wif: key_wif,
+        change_address: "1AbzLiTqycBdeWdMSzcd3D5iwZXAeqkn3v"
+      )
     end
 
     def test_find_inputs

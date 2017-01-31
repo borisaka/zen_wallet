@@ -1,11 +1,8 @@
 # frozen_string_literal: true
-require "bitcoin"
-require_relative "browser"
 require "money-tree"
 require "btcruby"
 module ZenWallet
   module TransactionBuilder
-    extend Bitcoin::Builder
     extend MoneyTree::Support
 
     module_function
@@ -13,34 +10,13 @@ module ZenWallet
     def build_transaction(utxo:, outputs:, fee:,
                           private_key_wif:, change_address:)
       sat = outputs.reduce(0) { |acc, elem| acc + elem[:satoshis] } + fee
-      inputs = find_inputs(utxo, sat)
-      utxo = inputs.map do |i|
-        BTC::TransactionOutput
-          .new(value:  i[:satoshis],
-               script: BTC::PublicKeyAddress.parse(i[:address]).script,
-               transaction_id: i[:txid],
-               index: i[:vout])
-      end
+      utxo = collect_utxo(utxo, sat)
       builder = BTC::TransactionBuilder.new
       builder.input_addresses = [private_key_wif]
       builder.provider = BTC::TransactionBuilder::Provider.new do |txb|
-        # utxo
-        # puts "TXB: #{txb.public_addresses}"
-        scripts = txb.public_addresses.map{ |a| a.script }.uniq
-        # puts "SCRIPTS: #{scripts}"
-        # puts "UTXO: #{utxo}"
+        scripts = txb.public_addresses.map(&:script).uniq
         utxo.find_all { |u| scripts.include?(u.script) }
       end
-      # builder.unspent_outputs_provider_block = lambda do |addresses, outputs_amount, outputs_size, fee_rate|
-      #   inputs.map do |input|
-      #     BTC::TransactionOutput.new(
-      #       value: input[:satoshis],
-      #       script: BTC::PublicKeyAddress.parse(input[:address]).script,
-      #       transaction_id: input[:tx_id],
-      #       index: 0
-      #    )
-      #   end
-      # end
       builder.outputs = outputs.map do |out|
         BTC::TransactionOutput.new(
           value: out[:satoshis],
@@ -48,7 +24,25 @@ module ZenWallet
         )
       end
       builder.change_address = BTC::Address.parse(change_address)
-      builder.build
+      # mokey_patch builder
+      builder.instance_variable_set("@fee", fee)
+      class<<builder
+        def compute_fee_for_transaction(*attrs)
+          @fee
+        end
+      end
+      # builder
+      builder.build.transaction
+    end
+
+    def collect_utxo(utxo, sat)
+      find_inputs(utxo, sat).map do |i|
+        BTC::TransactionOutput
+          .new(value:  i[:satoshis],
+               script: BTC::PublicKeyAddress.parse(i[:address]).script,
+               transaction_id: i[:txid],
+               index: i[:vout])
+      end
     end
 
     def find_inputs(utxo, sat)

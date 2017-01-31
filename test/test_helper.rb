@@ -1,6 +1,8 @@
 # frozen_string_literal: true
-$LOAD_PATH.unshift File.expand_path("../../lib", __FILE__)
+LIB_ROOT = File.expand_path(File.join("..", "..", "lib"), __FILE__)
+$LOAD_PATH.unshift LIB_ROOT
 require "zen_wallet"
 require "minitest/autorun"
 require "mocha/mini_test"
-require "pry-rescue/minitest" if ENV["DEBUG"]
+require "pry"
+# require "pry-rescue/minitest" if ENV["DEBUG"]
