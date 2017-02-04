@@ -1,15 +1,8 @@
+# frozen_string_literal: true
 require "base64"
 module ZenWallet
-  module Utils
+  module Crypto
     module_function
-
-    def build_wallet(passphrase = "")
-      salt = SecureRandom.hex(16)
-      master = MoneyTree::Master.new
-      serialized_seed = master.to_bip32(:private)
-      encrypted_seed = Utils.encrypt(serialized_seed, passphrase, salt)
-      Wallet.new(encrypted_seed, master.public_key.key, master.chain_code)
-    end
 
     def encrypt(text, passphrase, salt)
       cipher = OpenSSL::Cipher.new("AES-128-CBC")

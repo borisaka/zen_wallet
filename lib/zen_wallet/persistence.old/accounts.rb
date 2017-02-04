@@ -5,7 +5,7 @@ module ZenWallet
     class Accounts < Store
       def persist(account)
         attrs = { wallet_id: account.wallet.id, id: account.id,
-                  order: account.order, address: account.address,
+                  index: account.index, address: account.address,
                   private_key: account.private_key,
                   public_key: account.public_key }
         dataset.insert(**attrs) && attrs
@@ -20,7 +20,7 @@ module ZenWallet
       end
 
       def next_index(wallet_id)
-        current = dataset.where(wallet_id: wallet_id).max(:order)
+        current = dataset.where(wallet_id: wallet_id).max(:index)
         current ? current + 1 : 0
       end
 

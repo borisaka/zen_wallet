@@ -4,6 +4,7 @@ require "dry-initializer"
 require "zen_wallet/insight"
 require "zen_wallet/insight/models"
 require "zen_wallet/transaction_builder"
+require_relative "address"
 module ZenWallet
   module HD
     class Account
@@ -11,10 +12,20 @@ module ZenWallet
       include Dry::Equalizer(:public_key)
       param  :wallet
       option :id
-      option :order
+      option :index
       option :private_key
       option :public_key
-      option :address
+
+      def secured?
+        private_key.nil?
+      end
+
+      # def root_address
+      #   Address.new(self, )
+      # end
+      def path
+        "m/44'/0'/#{index}'"
+      end
 
       def fetch_balance(only_confirmed = false)
         attrs = Insight.client.balance(address)
@@ -48,6 +59,16 @@ module ZenWallet
 
       def fetch_utxo
         Insight.client.utxo(address)
+      end
+
+      private
+
+      def create_address(change, index)
+
+      end
+
+      def root_addresses
+
       end
     end
   end

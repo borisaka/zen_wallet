@@ -3,7 +3,7 @@ Sequel.migration do
     create_table(:accounts) do
       String :id, size: 50
       foreign_key :wallet_id, :wallets, type: "varchar(250)"
-      Integer :order, index: true
+      Integer :index, index: true
       String :private_key, size: 250
       String :public_key, size: 250
       String :address, size: 250

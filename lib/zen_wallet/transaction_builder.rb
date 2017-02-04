@@ -1,5 +1,4 @@
 # frozen_string_literal: true
-require "money-tree"
 require "btcruby"
 module ZenWallet
   module TransactionBuilder

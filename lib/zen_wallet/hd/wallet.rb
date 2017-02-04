@@ -1,81 +1,81 @@
 # frozen_string_literal: true
-require "dry-equalizer"
-require "dry-initializer"
-require "dry-types"
-require "money-tree"
-require "zen_wallet/utils"
-require_relative "account"
+require "zen_wallet/crypto"
 module ZenWallet
   module HD
-    class Wallet
-      extend Dry::Initializer::Mixin
-      include Dry::Equalizer(:id, :encrypted_seed, :public_seed, :salt)
-      param  :store
-      option :id
-      option :encrypted_seed
-      option :public_seed
-      option :salt
+    # bip44 wallet
+    class Wallet < Abstract
+      def_delegators :model, :id, :secured_xprv, :salt
 
-      def account(account_id)
-        load_account(account_id) || create_account(account_id)
+      class Model < HD::Model
+        attribute :id, Types::Strict::String
+        attribute :secured_xprv, Types::Strict::String
+        attribute :xpub, Types::Strict::String
+        attribute :salt, Types::Strict::String
       end
 
-      def accounts
-        store.by_wallet(id).map { |attrs| Account.new(self, **attrs) }
+      # Generate new keychain with empty id
+      def self.generate(container, id, passphrase = "")
+        keychain = BTC::Keychain.new(seed: SecureRandom.hex)
+        hsh = {
+          id: id,
+          salt: SecureRandom.hex(16)
+        }
+        hsh[:secured_xprv] =
+          Utils.encrypt(keychain.xprv, passphrase, hsh[:salt])
+        new(container, keychain.xprv,  **hsh)
       end
 
-      # def account_by_address(address)
-      #   Account.new(self, store.by_wallet(id, address: address).first)
+      def extended_key
+        xprv || xpub
+      end
+
+      def unlocked?
+        private?
+      end
+
+      # def account(account_id)
+      #   load_account(account_id)
+      # end
+      #
+      # def ensure_account(account_id, forget_private_key: true)
+      #   acc = load_account(account_id)
+      #   return acc if acc
+      #   acc || create_account(account_id, forget_private_key)
       # end
 
       def unlock(passphrase)
-        seed = Utils.decrypt(encrypted_seed, passphrase, salt)
-        unlocked = MoneyTree::Master.from_bip32(seed)
-        yield unlocked if block_given?
-        true
+        @xprv = Utils.decrypt(@xprv_encrypted, passphrase, salt)
+        @keychain = BTC::Keychain.new(xprv: @xprv)
+        yield @keychain if block_given?
+        remove_instance_variable("@xprv")
+        @keychain = @keychain.public_keychain
       rescue OpenSSL::Cipher::CipherError
-        false
+        raise "Wrong passphrase for decrypt wallet: #{id}"
       end
+      #
+      # def lock(passphrase, salt)
+      #   @xprv_encrypted = Utils.encrypt(@xprv, passphrase, salt)
+      #   nattrs = @struct.to_h.merge(xprv_encrypted: xprv_encrypted, salt: salt)
+      #   @struct = self.class.struct.new(nattrs)
+      # end
 
-      def master
-        @master ||= MoneyTree::Master.from_bip32(public_seed)
-      end
-
-      def private_key_for(account_id, passphrase = "")
-        acc = account(account_id)
-        key = nil
-        unlock(passphrase) do |master|
-          node = master.node_for_path("m/44/0/#{acc.order}")
-          key = node.private_key.to_wif
-        end
-        key
-      end
-
-      def derive_private_key(account_id, passphrase = "")
-        pk = private_key_for(account_id, passphrase)
-        store.set_private_key(id, account_id, pk)
-        true
-      end
-
-      private
-
-      def load_account(account_id)
-        attrs = store.lookup(id, account_id)
-        Account.new(self, **attrs) if attrs
-      end
-
-      def create_account(account_id)
-        order = store.next_index(id)
-        node = master.node_for_path("m/44/0/#{order}")
-        new_account = Account.new(self,
-                                  id: account_id,
-                                  order: order,
-                                  public_key: node.public_key.key,
-                                  private_key: node.private_key&.to_wif,
-                                  address: node.to_address)
-        store.persist(new_account)
-        new_account
-      end
+      # private
+      #
+      # def load_account(account_id)
+      #   attrs = store.lookup(id, account_id)
+      #   Account.new(self, **attrs) if attrs
+      # end
+      #
+      # def create_account(account_id, forget_private_key = true)
+      #   raise "Could not create account. Wallet is locked" unless unlocked?
+      #   index = store.next_index(id)
+      #   chain = keychain.bip44_keychain.bip44_account_keychain(index)
+      #   key_str = forget_private_key ? chain.xpub : chain.xprv
+      #   new_account =
+      #     Account.new(self, id: account_id, index: index, extended_key: key_str)
+      #   store.persist(new_account)
+      #   new_account
+      # end
     end
   end
 end

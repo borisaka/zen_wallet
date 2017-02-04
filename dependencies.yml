@@ -1,0 +1,32 @@
+runtime:
+  addressable: ~> 2.5.0
+  btcruby: ~> 1.6
+  dry-auto_inject: ~> 0.4.2
+  dry-configurable: ~> 0.5.0
+  dry-equalizer: ~> 0.2.0
+  dry-initializer: ~> 0.11.0
+  dry-logic: ~> 0.4.1
+  dry-monads: ~> 0.2.1
+  dry-types: ~> 0.9.4
+  dry-struct: ~> 0.1.1
+  faraday: ~> 0.11.0
+  rake: ~> 10.0
+  rom: ~> 3.0.1
+  rom-repository: ~> 1.0.1
+  rom-sql: ~> 1.0.0
+  sequel: ~> 4.42
+  transproc: ~> 1.0.0
+development:
+  bundler: ~> 1.13
+  faker: ~> 1.7.2
+  minitest: ~> 5.0
+  m:
+  mocha: ~> 1.2.1
+  pry:
+  pry-byebug:
+  pry-state:
+  pry-doc:
+  rubocop: ~>0.46.0
+  sqlite3:
+  webmock: ~> 2.3.2
+  yard:
