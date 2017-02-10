@@ -33,7 +33,7 @@ Gem::Specification.new do |spec|
   dependencies["runtime"].each do |g, v|
     spec.add_runtime_dependency(g, v)
   end
-
+    
   dependencies["development"].each do |g, v|
     spec.add_development_dependency(g, v)
   end

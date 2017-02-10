@@ -1,25 +1,35 @@
 # frozen_string_literal: true
 require "rom-repository"
-require "zen_wallet/hd"
+require "zen_wallet/models"
 
 module ZenWallet
   module Persistence
     class WalletRepo < ROM::Repository[:wallets]
-      commands :create, update: :by_pk
-      Model = HD::Wallet::Model
+      class UnpermittedUpdate < StandardError
+        def message
+          "Ony 'secured_xprv' and 'salt' togever allowed to update"
+        end
+      end
+      commands :create
 
-      def [](id)
-        attrs = wallets.lookup(id)
-        Model.new(attrs) if attrs
+      def find(id)
+        root.by_pk(id).as(Models::Wallet).first
       end
 
-      def exists?(id)
-        wallets.where(id: id).count.positive?
+      def update_passphrase(model)
+        id = model.id
+        cs = changeset(id, model.to_h)
+        validate_changeset(cs)
+        root.by_pk(id).update(cs.diff)
+        true
       end
 
-      def change(id, **attrs)
-        Model.new(update(id, changeset(id, attrs)).to_h)
+      private
+
+      def validate_changeset(cs)
+        raise UnpermittedUpdate unless cs.diff.keys == %i(secured_xprv salt)
       end
+
     end
   end
 end

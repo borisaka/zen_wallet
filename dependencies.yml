@@ -16,16 +16,22 @@ runtime:
   rom-sql: ~> 1.0.0
   sequel: ~> 4.42
   transproc: ~> 1.0.0
+  rethinkdb:
+  money-tree:
+
 development:
   bundler: ~> 1.13
   faker: ~> 1.7.2
   minitest: ~> 5.0
   m:
+  ruby_cowsay:
   mocha: ~> 1.2.1
   pry:
   pry-byebug:
   pry-state:
   pry-doc:
+  pry-inline:
+  pry-loudmouth:
   rubocop: ~>0.46.0
   sqlite3:
   webmock: ~> 2.3.2

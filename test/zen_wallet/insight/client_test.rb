@@ -3,8 +3,10 @@ require "test_helper"
 require "webmock/minitest"
 require "faker"
 require "zen_wallet/insight/client"
+
 module ZenWallet
   module Insight
+    
     class ClientTest < Minitest::Test
       def setup
         bitcore_link = "https://#{Faker::Internet.domain_name}"
