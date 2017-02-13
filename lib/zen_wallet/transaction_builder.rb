@@ -8,7 +8,7 @@ module ZenWallet
 
     def build_transaction(utxo:, outputs:, fee:,
                           private_key_wif:, change_address:)
-      sat = outputs.reduce(0) { |acc, elem| acc + elem[:satoshis] } + fee
+      sat = outputs.reduce(0) { |acc, elem| acc + elem[:amount] } + fee
       utxo = collect_utxo(utxo, sat)
       builder = BTC::TransactionBuilder.new
       builder.input_addresses = [private_key_wif]
@@ -18,7 +18,7 @@ module ZenWallet
       end
       builder.outputs = outputs.map do |out|
         BTC::TransactionOutput.new(
-          value: out[:satoshis],
+          value: out[:amount],
           script: BTC::Address.parse(out[:address]).script
         )
       end
@@ -37,7 +37,7 @@ module ZenWallet
     def collect_utxo(utxo, sat)
       find_inputs(utxo, sat).map do |i|
         BTC::TransactionOutput
-          .new(value:  i[:satoshis],
+          .new(value:  i[:amount],
                script: BTC::PublicKeyAddress.parse(i[:address]).script,
                transaction_id: i[:txid],
                index: i[:vout])
@@ -46,18 +46,18 @@ module ZenWallet
 
     def find_inputs(utxo, sat)
       enough = lambda do |inputs, amount|
-        inputs.reduce(0) { |acc, elem| acc + elem[:satoshis] } >= amount
+        inputs.reduce(0) { |acc, elem| acc + elem[:amount] } >= amount
       end
       raise "Amount too big" unless enough.call(utxo, sat)
-      sort = ->(x, y) { x[:satoshis] <=> y[:satoshis] }
+      sort = ->(x, y) { x[:amount] <=> y[:amount] }
       small, big = utxo.sort(&sort)
-                       .partition { |u| u[:satoshis] < sat }
+                       .partition { |u| u[:amount] < sat }
       enough.call(small, sat) ? collect_small(small, sat) : [big.first]
     end
 
     def collect_small(utxo, sat)
       head, *tail = utxo
-      current = head[:satoshis]
+      current = head[:amount]
       current >= sat ? [head] : [head, *collect_small(tail, sat - current)]
     end
   end

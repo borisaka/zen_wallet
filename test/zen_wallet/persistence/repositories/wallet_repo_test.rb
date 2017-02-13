@@ -1,5 +1,4 @@
 require_relative "../test_helper"
-# require "zen_wallet/hd/wallet"
 module ZenWallet
   module Persistence
     class WalletRepoTest < RepoTest
@@ -36,18 +35,10 @@ module ZenWallet
         assert_equal fake_attrs, @dataset.where(id: "fid").first
       end
 
-      # def test_free_account_id
-      #   @repo.stubs(:accounts).returns(@rel_accounts)
-      #   @rel_accounts.expects(:next_free_id)
-      #                .with(WalletConstants::ID)
-      #                .returns(10)
-      #   assert_equal 10, @repo.free_account_id(WalletConstants::ID)
-      # end
-
       def test_internal
         @dataset.insert(@wallet_attrs.to_h)
         wrong_model =
-          Models::Wallet.new(@wallet_attrs.merge(secured_xprv: "spv"))
+          HD::Models::Wallet.new(@wallet_attrs.merge(secured_xprv: "spv"))
         assert_raises(WalletRepo::UnpermittedUpdate) do
           @repo.update_passphrase(wrong_model)
         end

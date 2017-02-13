@@ -5,7 +5,6 @@ require "sequel"
 require "rom"
 require "rom-repository"
 require "btcruby"
-# require "zen_wallet/persistence/relations/wallets"
 require_relative "persistence/repositories/wallet_repo"
 require_relative "persistence/repositories/account_repo"
 require_relative "persistence/repositories/address_repo"
@@ -15,7 +14,7 @@ module ZenWallet
   module Service
     class Instance
       extend Dry::Configurable
-      setting :db, "sqlite::memory"
+      setting :db, "sqlite:/"
       setting :automigrate, true
       setting :bitcoin_network, :mainnet
     end

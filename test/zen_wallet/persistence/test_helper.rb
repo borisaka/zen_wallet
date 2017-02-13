@@ -5,6 +5,7 @@ require "zen_wallet/service"
 module PersistenceMixin
   def before_setup
     super
+    # binding.pry
     @container = ZenWallet::Service.container
     @sequel = @container.resolve("sequel")
     @dataset = @sequel[table_name]

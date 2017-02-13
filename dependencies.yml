@@ -17,7 +17,6 @@ runtime:
   sequel: ~> 4.42
   transproc: ~> 1.0.0
   rethinkdb:
-  money-tree:
 
 development:
   bundler: ~> 1.13
@@ -36,3 +35,4 @@ development:
   sqlite3:
   webmock: ~> 2.3.2
   yard:
+  simplecov:

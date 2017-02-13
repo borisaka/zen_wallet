@@ -1,33 +1,41 @@
 # frozen_string_literal: true
 require_relative "insight/client"
 require_relative "insight/transformation"
-require_relative "insight/transaction"
-require_relative "insight/balance"
+# require_relative "insight/transaction"
+# require_relative "insight/balance"
 module ZenWallet
+  # Realtime Bitcore insight fettcher
   class Insight
     BITCORE_MAINNET = "https://blockexplorer.com"
     BITCORE_TESTNET = "https://testnet.blockexplorer.com"
     # MAX_ADDRESSES_REQ = 100
-    def initialize(account, network)
+    def initialize(network, account, addresses)
       @account = account
-      @addresses = @account.pluck_addresses
-      @free_addresses = @account.load_gap_addresses
+      @addresses = addresses
       @network = network
       @client = insight_client
     end
 
     def transactions(from = 0, to = 20)
-      txs_json = @client.tx_history(addresses_string, from, to)
-      tx_page = Transformation::TxPageTransform.call(txs_json)
-      tx_page.txs.map { |tx| init_fettched_tx(tx) }
+      fetch_txs_page(from, to)
     end
 
-    def utxo
+    # Fetch anf map UTXO
+    def balance
       utxo_json = @client.utxo(addresses_string)
-      Transformation::UtxoTransform.call(utxo_json)
+      Transformation::BalanceTransform.call(utxo: utxo_json)
+    end
+
+    def broadcast(rawtx)
+      @client.broadcast_tx(rawtx)["txid"]
     end
 
     private
+
+    def fetch_txs_page(from, to)
+      txs_json = @client.txs(addresses_string, from, to)
+      Transformation::TxPageTransform.call(txs_json)
+    end
 
     def addresses_string
       @addresses.join(",")

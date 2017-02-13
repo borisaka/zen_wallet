@@ -58,8 +58,12 @@ module ZenWallet
                     .returns(WalletConstants::CH_SALT)
         @repo.expects(:update_passphrase).with(equals(@wallet_ch_model))
         @wallet.change_passphrase(WalletConstants::PASSPHRASE,
-                                  WalletConstants::CH_PASSPHRACE)
+                                  WalletConstants::CH_PASSPHRASE)
         assert_equal @wallet_ch_model, @wallet.instance_variable_get("@model")
+        assert_equal WalletConstants::XPRV,
+                     Crypto.decrypt(@wallet_ch_model.secured_xprv,
+                                    WalletConstants::CH_PASSPHRASE,
+                                    WalletConstants::CH_SALT)
       end
 
       def test_generate_and_persist

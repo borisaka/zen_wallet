@@ -2,12 +2,11 @@
 require "addressable"
 require "faraday"
 require "json"
-# require_relative "mappers"
 
 module ZenWallet
-  # Client for block explorer
   class Insight
-    # Client for blockexplorer api
+    # Client for bitcore insight api
+    # @api private
     class Client
       attr_reader :faraday
       def initialize(bitcore_address)
@@ -18,7 +17,7 @@ module ZenWallet
         post("addrs/utxo", addrs: addresses)
       end
 
-      def tx_history(addresses, from, to)
+      def txs(addresses, from, to)
         post("addrs/txs", addrs: addresses, from: from, to: to)
       end
 
@@ -28,6 +27,7 @@ module ZenWallet
 
       private
 
+      # unused, but keeped
       def get(endpoint)
         process(faraday.get("/api/#{endpoint}").body)
       end

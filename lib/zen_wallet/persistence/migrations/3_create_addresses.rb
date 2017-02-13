@@ -5,9 +5,9 @@ Sequel.migration do
       String :wallet_id, size: 50
       foreign_key [:wallet_id], :wallets, null: false
       Bignum :account_index
-      Integer :change
+      Integer :chain
       Integer :index
-      index %i(wallet_id account_index change index), unique: true
+      index %i(wallet_id account_index chain index), unique: true
       TrueClass :has_txs, default: false
       TrueClass :requested, default: false
     end

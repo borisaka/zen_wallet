@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 require "base64"
 module ZenWallet
+  # Basic cryptographic function to store wallet
   module Crypto
     module_function
 
@@ -8,8 +9,8 @@ module ZenWallet
       cipher = OpenSSL::Cipher.new("AES-128-CBC")
       cipher.encrypt
       cipher.key = OpenSSL::PKCS5
-                   .pbkdf2_hmac_sha1(passphrase, salt, 20_000, 128)
-      cipher.iv = OpenSSL::PKCS5.pbkdf2_hmac_sha1(salt, "", 20_000, 32)
+                   .pbkdf2_hmac_sha1(passphrase, salt, 20_000, 16)
+      cipher.iv = OpenSSL::PKCS5.pbkdf2_hmac_sha1(salt, "", 20_000, 16)
       encrypted = cipher.update(text) + cipher.final
       Base64.encode64(encrypted)
     end
@@ -19,8 +20,8 @@ module ZenWallet
       decipher = OpenSSL::Cipher::AES.new(128, :CBC)
       decipher.decrypt
       decipher.key = OpenSSL::PKCS5
-                     .pbkdf2_hmac_sha1(passphrase, salt, 20_000, 128)
-      decipher.iv = OpenSSL::PKCS5.pbkdf2_hmac_sha1(salt, "", 20_000, 32)
+                     .pbkdf2_hmac_sha1(passphrase, salt, 20_000, 16)
+      decipher.iv = OpenSSL::PKCS5.pbkdf2_hmac_sha1(salt, "", 20_000, 16)
       decipher.update(encrypted_text) + decipher.final
     end
   end
