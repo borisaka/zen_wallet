@@ -9,8 +9,9 @@ module ZenWallet
     BITCORE_MAINNET = "https://blockexplorer.com"
     BITCORE_TESTNET = "https://testnet.blockexplorer.com"
     # MAX_ADDRESSES_REQ = 100
-    def initialize(network, account, addresses)
-      @account = account
+    # @param network [BTC::Network] which bitcoin network to connect
+    # @param addresses [HD::Account] list of addresses to watch
+    def initialize(network, addresses)
       @addresses = addresses
       @network = network
       @client = insight_client
@@ -20,12 +21,14 @@ module ZenWallet
       fetch_txs_page(from, to)
     end
 
-    # Fetch anf map UTXO
+    # Fetch map UTXO
     def balance
       utxo_json = @client.utxo(addresses_string)
       Transformation::BalanceTransform.call(utxo: utxo_json)
     end
 
+    # Broadcast btc transaction
+    # param rawtx [String] hex of transaction
     def broadcast(rawtx)
       @client.broadcast_tx(rawtx)["txid"]
     end

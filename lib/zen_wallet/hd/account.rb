@@ -105,7 +105,6 @@ module ZenWallet
         # helper =
       end
 
-
       def discover
         fetch_balance.addresses.map(&:address).each do |addr|
           # @todo – update collection in sql
@@ -116,7 +115,6 @@ module ZenWallet
       end
 
       private
-
 
       def provide_keys(addresses, prv_keychain)
         touple_kls = Struct.new(:address, :key)

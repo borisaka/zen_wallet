@@ -46,13 +46,13 @@ module ZenWallet
         end
 
         # Mark address as requested unless alreadt
-        # @todo – update collection in sql
+        # @todo Update collection in sql
         def ensure_requested_mark(addr)
           @repo.update(addr, requested: true) unless @repo.find(addr).requested
         end
 
         # Mark address as used unless alreadt
-        # @todo – update collection in sql
+        # @todo Update collection in sql
         def ensure_has_txs_mark(addr)
           @repo.update(addr, has_txs: true) unless @repo.find(addr).has_txs
         end

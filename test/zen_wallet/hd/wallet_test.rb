@@ -1,35 +1,39 @@
 # frozen_string_literal: true
-require "test_helper"
 require "zen_wallet/hd/wallet"
+require_relative "test_helper"
+require "mixins/wallet"
+require "mixins/account"
+require "zen_wallet/persistence/repositories/wallet_repo"
+require "zen_wallet/persistence/repositories/account_repo"
 module ZenWallet
   module HD
-    class WalletTest < Minitest::Test
+    class WalletTest < HDTest
       include WalletModelMixin
-      include AccModelMixin
-
+      include AccountMixin
       def setup
-        @container = Dry::Container.new
+        super
         @repo = mock
+        @repo.responds_like_instance_of(Persistence::WalletRepo)
         @account_repo = mock
+        @account_repo.responds_like_instance_of(Persistence::AccountRepo)
         @container.register("wallet_repo", @repo)
         @container.register("account_repo", @account_repo)
         @container.register("address_repo", @mock)
-        @container.register("bitcoin_network", BTC::Network.mainnet)
         @prv_keychain = BTC::Keychain.new(seed: WalletConstants::RANDOM_SEED)
         @pub_keychain = @prv_keychain.public_keychain
-        @repo.stubs(:find).with("id").returns(@wallet_model)
-        @wallet = Wallet.new(@container, "id")
+        @repo.expects(:find).with(WalletConstants::ID).returns(@wallet_model)
+        @wallet = Wallet.new(@container, WalletConstants::ID)
       end
 
       def test_initialize__create
         @repo.expects(:find).with(WalletConstants::ID).returns(nil)
-        Wallet.any_instance.expects(:generate_and_persist)
-              .with(WalletConstants::ID, WalletConstants::PASSPHRASE)
-              .returns(@wallet_model)
+        SecureRandom.expects(:hex).returns(WalletConstants::RANDOM_SEED)
+        SecureRandom.expects(:hex).with(16).returns(WalletConstants::SALT)
+        @repo.expects(:create).with(equals(@wallet_model))
         wallet = Wallet.new(@container, "id")
         assert_same @repo, wallet.instance_variable_get("@repo")
         assert_same @account_repo, wallet.instance_variable_get("@account_repo")
-        assert_same @wallet_model, wallet.instance_variable_get("@model")
+        assert_equal @wallet_model, wallet.instance_variable_get("@model")
         assert_equal @pub_keychain, wallet.instance_variable_get("@keychain")
       end
 

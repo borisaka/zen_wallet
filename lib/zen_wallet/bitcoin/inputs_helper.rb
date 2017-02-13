@@ -7,8 +7,15 @@ module ZenWallet
 
       module_function
 
+      # Simle structs to communicate
       Input = Struct.new(:utxo, :key)
       PreparedInputs = Struct.new(:inputs, :change)
+
+      # Collect optimal UTXO and aggregate with private keys
+      # @param utxo [Array<CommonStructs::Utxo>]
+      # @param amount [Integer] total amount (including fees)
+      # @yield [Array<String>] array of addreses to provide private keys
+      # @api public
       def prepare_inputs(utxo, amount, &key_provider)
         selected = select(utxo, amount)
         inputs = appen_keys(selected, &key_provider)
@@ -17,6 +24,7 @@ module ZenWallet
         PreparedInputs.new(inputs, change > DUST_CHANGE ? change : 0)
       end
 
+      # @api private
       def appen_keys(utxo, &key_provider)
         addr_keys = key_provider[utxo.map(&:address).uniq]
         utxo.map do |u|
@@ -25,6 +33,7 @@ module ZenWallet
         end
       end
 
+      # @api private
       def select(utxo, amount)
         if utxo.any? { |u| u.confirmations.zero? }
           confirmed = utxo.select { |u| u.confirmations.positive? }
@@ -33,6 +42,7 @@ module ZenWallet
         collect(utxo, amount)
       end
 
+      # @api private
       def collect(utxo, amount)
         same = same_amount(utxo, amount)
         return [same] if same
@@ -45,7 +55,7 @@ module ZenWallet
         end
       end
 
-      # If found without change perfect
+      # @api private
       def same_amount(utxo, amount)
         utxo.detect do |u|
           (u.amount..(u.amount + DUST_CHANGE)).cover?(amount)

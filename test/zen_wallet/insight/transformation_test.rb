@@ -38,11 +38,7 @@ module ZenWallet
                            outputs: [@parsed_output])
           @parsed_tx_page =
             Models::TxPage.new(from: 0, to: 10, total: 1, txs: [@parsed_tx])
-          @parsed_utxo =
-            [Models::Utxo.new(address: "1", txid: "2", vout: 0,
-                              amount: 10_000_000, script: "script")]
         end
-
         def test_tx_in_transform
           assert_equal @parsed_input, TxInTransform.call(@inputs.first)
         end
@@ -57,10 +53,6 @@ module ZenWallet
 
         def test_tx_page_transform
           assert_equal @parsed_tx_page, TxPageTransform.call(@page)
-        end
-
-        def test_utxo_transform
-          assert_equal @parsed_utxo, UtxoTransform.call(@utxo)
         end
       end
     end

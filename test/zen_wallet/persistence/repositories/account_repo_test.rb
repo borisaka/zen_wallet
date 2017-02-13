@@ -1,9 +1,9 @@
 require_relative "../test_helper"
+require "mixins/account"
 module ZenWallet
   module Persistence
     class AccountRepoTest < RepoTest
-      include AccModelMixin
-      include WalletAttrsMixin
+      include AccountMixin
       def setup
         super
         @sequel[:wallets].insert(@wallet_attrs)

@@ -1,6 +1,6 @@
 module ZenWallet
   module Bitcoin
-    # Custom builder vlass
+    # Custom builder class
     class TxBuilder
       def initialize
         @outputs = []
@@ -14,10 +14,12 @@ module ZenWallet
         @outputs << build_output(output_info)
       end
 
+      # @param prepared_input [Struct<CommonStructs::Utxo>, BTC::Key]
       def input(prepared_input)
         @inputs << prepared_input
       end
 
+      # Build and returns raw transaction
       def build
         @tx = BTC::Transaction.new
         pair = Struct.new(:txin, :index)
@@ -36,7 +38,6 @@ module ZenWallet
       private
 
       def sign_input(txin, index)
-        # index = @tx.inputs.index(input)
         htype = BTC::SIGHASH_ALL
         output_script = BTC::Script.new(data: BTC.from_hex(txin.utxo.script))
         sighash = @tx.signature_hash(input_index: index,
