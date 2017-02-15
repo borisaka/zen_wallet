@@ -2,6 +2,7 @@
 require "dry-monads"
 require_relative "insight/client"
 require_relative "insight/transformation"
+require_relative "insight/transformation/tx_decorator"
 # require_relative "insight/transaction"
 # require_relative "insight/balance"
 # "https://test-insight.bitpay.com/"
@@ -23,17 +24,17 @@ module ZenWallet
     end
 
     def transactions(from = 0, to = 20)
-      page = fetch_txs_page(from, to)
-      # Transformation::TxAccountInfo(@account.wallet_id,
-      #                               @account.id,
-      #                               @addresses,
-      #                               page[:txs])
+      return [] if @addresses.empty?
+      txs_json = @client.txs(addresses_string, from, to)
+      page = Transformation::TxPageTransform.call(txs_json)
+      Transformation.TxDecorator(addresses_string, page[:txs])
     end
 
     # Fetch map UTXO
     def balance
+      return nil if @addresses.empty?
       Maybe(@client.utxo(addresses_string)).bind do |hsh|
-           Transformation::BalanceTransform.call(hsh)
+            Transformation::BalanceTransform.call(hsh)
       end
     end
 
@@ -44,12 +45,6 @@ module ZenWallet
     end
 
     private
-
-    def fetch_txs_page(from, to)
-      txs_json = @client.txs(addresses_string, from, to)
-      Transformation::TxPageTransform.call(txs_json)
-      warn "CLient does not working"
-    end
 
     def addresses_string
       @addresses.join(",")

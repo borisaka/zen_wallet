@@ -32,8 +32,8 @@ module ZenWallet
         constructor_type :permissive
         attribute :txid, Types::Coercible::String
         attribute :confirmations, Types::Coercible::Int
-        attribute :time, Types::Coercible::Time
-        attribute :blocktime, Types::Coercible::Time.optional
+        attribute :time, Types::Strict::Time
+        attribute :blocktime, Types::Strict::Time.optional
         attribute :inputs, Types::Coercible::Array.member(TxIn)
         attribute :outputs, Types::Coercible::Array.member(TxOut)
         attribute :fees, Types::Coercible::Int

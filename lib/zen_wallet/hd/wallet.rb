@@ -52,6 +52,11 @@ module ZenWallet
       #      account.spend(outs, wd, keychain)
       #    end
       def unlock_account(passphrase, account_id)
+        unlock(passphrase) do |keychain|
+          acc = account(account_id)
+          acc_keychain = account_keychain(acc.index, keychain)
+          yield acc_keychain
+        end
       end
 
       # reencrypt master key with new user passphrase
@@ -91,7 +96,7 @@ module ZenWallet
       def open_account(id, passphrase, trusted = false)
         unlock(passphrase) do |prv_keychain|
           account_model = build_account(id, prv_keychain, trusted)
-          Account.new(@container, @account_repo.persist(account_model))
+          Account.new(@container, account_model)
         end
       end
 
@@ -120,13 +125,15 @@ module ZenWallet
         index = @account_repo.next_index(@model.id, id)
         acc_keychain = account_keychain(index, prv_keychain)
         xprv = trusted ? acc_keychain.xprv : nil
-        Models::Account.new(
+        model = Models::Account.new(
           wallet_id: @model.id,
           id: id,
           index: index,
           xprv: xprv,
           xpub: acc_keychain.xpub
         )
+        @account_repo.persist(model)
+        model
       end
     end
   end

@@ -27,19 +27,22 @@ module ZenWallet
       #   and bitcoin_network [BTC::Network]
       # @param model [Models::Account] instance with stored attributes
       def initialize(container, model)
-
         @model = model
         @keychain = BTC::Keychain.new(extended_key: @model.xprv || @model.xpub)
         @address_repo = container.resolve("address_repo")
         @network = container.resolve("bitcoin_network")
         @registry = Registry.new(@model, @address_repo, @network,
-                                  @keychain.public_keychain)
+                                 @keychain.public_keychain)
       end
 
       # flag if account trusted
       # @return [Boolean]
       def trusted?
         !@model.xprv.nil?
+      end
+
+      def index
+        @model.index
       end
 
       # Next receiver address
@@ -51,20 +54,21 @@ module ZenWallet
       #   'requested' addresses will use only if gap limit is full
       # @return [Models::Address] bitcoin external chain address
       def request_receive_addr
-        @registry.fill_gap_limit(Registry::EXTERNAL_CHAIN)
+        @registry.fill_gap_limit
         address_obj = @registry.free_address(Registry::EXTERNAL_CHAIN)
         @registry.ensure_requested_mark(address_obj.address)
-        address_obj
+        address_obj.address
       end
 
       # Show free addresses
       def receive_addresses
+        @registry.fill_gap_limit
         @registry.pluck_addresses(has_txs: false)
       end
 
       def change_address
-        # @registry.fill_gap_limit(Registry::INTERNAL_CHAIN)
-        @registry.free_address(Registry::INTERNAL_CHAIN)
+        @registry.fill_gap_limit
+        @registry.free_address(Registry::INTERNAL_CHAIN).address
       end
 
       # Current balance of account
@@ -99,7 +103,7 @@ module ZenWallet
         balance = fetch_balance
         raise PrivateKeychainRequired unless keychain || @model.xprv
         keychain ||= BTC::Keychain.new(xprv: @model.xprv)
-        proposal = tx_proposal(outputs, fees, change_address.address)
+        proposal = tx_proposal(outputs, fees, change_address)
         tx_helper = Bitcoin::TxHelper.new(proposal, balance)
         raw = tx_helper.build { |addrsses| provide_keys(addrsses, keychain) }
         txid = insight.broadcast(raw)
@@ -110,13 +114,12 @@ module ZenWallet
         # helper =
       end
 
-      # def discover
-      #   @registry.fill_gap_limit(Registry::EXTERNAL_CHAIN)
-      #   @registry.fill_gap_limit(Registry::INTERNAL_CHAIN)
-      #   fetch_balance.addresses.map(&:address).each do |addr|
-      #     @registry.ensure_has_txs_mark(addr)
-      #   end
-      # end
+      def update_addresses
+        fetch_balance&.addresses&.each do |address_obj|
+          @registry.ensure_has_txs_mark(address_obj.address)
+        end
+        @registry.fill_gap_limit
+      end
 
       private
 
@@ -129,7 +132,6 @@ module ZenWallet
           touple_kls.new(address_obj.address, key)
         end
       end
-
 
       def tx_proposal(outputs, fees, change_address)
         strict_outs = outputs.map { |out| AddressAmount.new(**out) }
