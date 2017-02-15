@@ -1,16 +1,19 @@
 # frozen_string_literal: true
-require "addressable"
-require "faraday"
+require "net/http"
 require "json"
-
+require "uri"
+require_relative "client/balancer"
 module ZenWallet
   class Insight
     # Client for bitcore insight api
     # @api private
     class Client
-      attr_reader :faraday
-      def initialize(bitcore_address)
-        @faraday = Faraday.new(bitcore_address)
+      extend Forwardable
+      def_delegators :@network, :testnet?, :main_net?
+      def_delegators Balancer, :test_net_uri, :main_net_uri
+
+      def initialize(bitcoin_network)
+        @network = bitcoin_network
       end
 
       def utxo(addresses)
@@ -18,6 +21,7 @@ module ZenWallet
       end
 
       def txs(addresses, from, to)
+        # binding.pry
         post("addrs/txs", addrs: addresses, from: from, to: to)
       end
 
@@ -27,17 +31,22 @@ module ZenWallet
 
       private
 
-      # unused, but keeped
-      def get(endpoint)
-        process(faraday.get("/api/#{endpoint}").body)
+      def working_uri(enpoint)
+        api_link = testnet? ? Balancer.test_net_uri : Balancer.main_net_uri
+        #  = @network.testnet? ? test_net_uri : main_net_uri
+        uri = URI.parse("#{api_link.host_url}/#{api_link.base_path}")
+        uri.merge(enpoint)
       end
 
       def post(endpoint, data)
-        response = faraday.post do |req|
-          req.url "/api/#{endpoint}"
-          req.headers["Content-Type"] = "application/json"
-          req.body = JSON.dump(data)
-        end
+        uri = working_uri(endpoint)
+        http = Net::HTTP.new(uri.host, uri.port)
+        http.use_ssl = true
+        request = Net::HTTP::Post
+                  .new(uri.request_uri, "Content-Type" => "application/json")
+        request.body = JSON.dump(data)
+        response = http.request(request)
+        puts(response.body)
         process(response.body)
       end
 

@@ -17,24 +17,24 @@ module ZenWallet
   module CommonStructs
     # Simple pair of bitcoin address and sat amount
     class AddressAmount < Dry::Struct
-      attribute :address, Types::Strict::String
-      attribute :amount,  Types::Strict::Int
+      attribute :address, Types::Coercible::String
+      attribute :amount,  Types::Coercible::Int
     end
 
     # UTXO
     class Utxo < AddressAmount
-      attribute :txid, Types::Strict::String
-      attribute :vout, Types::Strict::Int
-      attribute :script, Types::Strict::String
-      attribute :confirmations, Types::Strict::Int
+      attribute :txid, Types::Coercible::String
+      attribute :vout, Types::Coercible::Int
+      attribute :script, Types::Coercible::String
+      attribute :confirmations, Types::Coercible::Int
     end
 
     # Prepared and not yet validated proposal.
     class TxProposal < Dry::Struct
       include ZenWallet::CommonStructs
       attribute :outputs, Types::Array.member(AddressAmount)
-      attribute :fees, Types::Strict::Int
-      attribute :change_address, Types::Strict::String
+      attribute :fees, Types::Coercible::Int
+      attribute :change_address, Types::Coercible::String
     end
   end
 end

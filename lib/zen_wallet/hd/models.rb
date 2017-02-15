@@ -33,7 +33,6 @@ module ZenWallet
         attribute :has_txs, Types::Bool.default(false)
         attribute :requested, Types::Bool.default(false)
       end
-
     end
   end
 end

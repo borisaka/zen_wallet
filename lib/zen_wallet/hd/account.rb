@@ -27,14 +27,13 @@ module ZenWallet
       #   and bitcoin_network [BTC::Network]
       # @param model [Models::Account] instance with stored attributes
       def initialize(container, model)
+
         @model = model
         @keychain = BTC::Keychain.new(extended_key: @model.xprv || @model.xpub)
         @address_repo = container.resolve("address_repo")
         @network = container.resolve("bitcoin_network")
-        @registry = Registry.new(@model,
-                                 @address_repo,
-                                 @network,
-                                 @keychain.public_keychain)
+        @registry = Registry.new(@model, @address_repo, @network,
+                                  @keychain.public_keychain)
       end
 
       # flag if account trusted
@@ -58,6 +57,16 @@ module ZenWallet
         address_obj
       end
 
+      # Show free addresses
+      def receive_addresses
+        @registry.pluck_addresses(has_txs: false)
+      end
+
+      def change_address
+        # @registry.fill_gap_limit(Registry::INTERNAL_CHAIN)
+        @registry.free_address(Registry::INTERNAL_CHAIN)
+      end
+
       # Current balance of account
       # it a sum of derived addresses utxos amount
       # @todo add detalization about txs count, total spent, receives, etc..
@@ -66,14 +75,10 @@ module ZenWallet
         insight.balance
       end
 
+      # history of transactions on account (aggregates by all addresses)
       def fetch_history(from = 0, to = 20)
-        discover
         insight.transactions(from, to)
       end
-
-      # history of transactions on account (aggregates by all addresses)
-      # def tx_history(from = 0, to = 20)
-      # end
 
       # Spends money to specified outputs
       # @param outputs [Array<String, Int>]
@@ -98,21 +103,20 @@ module ZenWallet
         tx_helper = Bitcoin::TxHelper.new(proposal, balance)
         raw = tx_helper.build { |addrsses| provide_keys(addrsses, keychain) }
         txid = insight.broadcast(raw)
-        discover
+        # discover
         txid
         #
         # proposal =
         # helper =
       end
 
-      def discover
-        fetch_balance.addresses.map(&:address).each do |addr|
-          # @todo – update collection in sql
-          @registry.ensure_has_txs_mark(addr)
-        end
-        @registry.fill_gap_limit(Registry::EXTERNAL_CHAIN)
-        @registry.fill_gap_limit(Registry::INTERNAL_CHAIN)
-      end
+      # def discover
+      #   @registry.fill_gap_limit(Registry::EXTERNAL_CHAIN)
+      #   @registry.fill_gap_limit(Registry::INTERNAL_CHAIN)
+      #   fetch_balance.addresses.map(&:address).each do |addr|
+      #     @registry.ensure_has_txs_mark(addr)
+      #   end
+      # end
 
       private
 
@@ -126,10 +130,6 @@ module ZenWallet
         end
       end
 
-      def change_address
-        @registry.fill_gap_limit(Registry::INTERNAL_CHAIN)
-        @registry.free_address(Registry::INTERNAL_CHAIN)
-      end
 
       def tx_proposal(outputs, fees, change_address)
         strict_outs = outputs.map { |out| AddressAmount.new(**out) }

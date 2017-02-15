@@ -9,54 +9,61 @@ module ZenWallet
       include ZenWallet::CommonStructs
       # Bitcoin Transaction Input
       class TxIn < Dry::Struct
-        attribute :txid, Types::Strict::String
-        attribute :vout, Types::Strict::Int
-        attribute :n, Types::Strict::Int
-        attribute :address, Types::Strict::String
-        attribute :amount, Types::Strict::Int
+        constructor_type :permissive
+        attribute :txid, Types::Coercible::String
+        attribute :vout, Types::Coercible::Int
+        attribute :n, Types::Coercible::Int
+        attribute :address, Types::Coercible::String
+        attribute :amount, Types::Coercible::Int
       end
 
       # Bitcoin Transaction Output
       class TxOut < Dry::Struct
-        attribute :n, Types::Strict::Int
-        attribute :amount, Types::Strict::Int
-        attribute :address, Types::Strict::String
-        attribute :type, Types::Strict::String
-        attribute :script, Types::Strict::String
+        constructor_type :permissive
+        attribute :n, Types::Coercible::Int
+        attribute :amount, Types::Coercible::Int
+        attribute :address, Types::Coercible::String
+        attribute :type, Types::Coercible::String
+        attribute :script, Types::Coercible::String
       end
 
       # Bitcoin Tx
       class Tx < Dry::Struct
-        attribute :txid, Types::Strict::String
-        attribute :confirmations, Types::Strict::Int
-        attribute :time, Types::Strict::Time
-        attribute :blocktime, Types::Strict::Time.optional
-        attribute :inputs, Types::Strict::Array.member(TxIn)
-        attribute :outputs, Types::Strict::Array.member(TxOut)
+        constructor_type :permissive
+        attribute :txid, Types::Coercible::String
+        attribute :confirmations, Types::Coercible::Int
+        attribute :time, Types::Coercible::Time
+        attribute :blocktime, Types::Coercible::Time.optional
+        attribute :inputs, Types::Coercible::Array.member(TxIn)
+        attribute :outputs, Types::Coercible::Array.member(TxOut)
+        attribute :fees, Types::Coercible::Int
       end
 
-      # Bitcore Insight Page with transaction
-      class TxPage < Dry::Struct
-        attribute :txs, Types::Strict::Array.member(Tx)
-        attribute :total, Types::Strict::Int
-        attribute :from, Types::Strict::Int
-        attribute :to, Types::Strict::Int
-      end
+      # class AccountTx < Tx
+      #   constructor_type: :permissive
+      #   attribute :wallet, Types::PKey
+      #   attribute :account, Types::PKey
+      #   attribute :total, Types::Strict::Int
+      #   attribute :direction, Types::TxDirection
+      #   attribute :fees, Types::Strict::Int
+      #   attribute :main_account_address, Types::Strict::String
+      #   attribute :addresses, Types::Coercible::Array.member(Models::AddressAmount)
+      #   attribute :main_peer, Types::Coercible::String.optional
+      #   attribute :peer_amount, Types::Coercible::Int.default(0)
+      #   attribute :peer_addresses,
+      #             Types::Strict::Array.member(Models::AddressAmount)
+      # end
+
+      # # Bitcore Insight Page with transaction
+      # class TxPage < Dry::Struct
+      #   # attribute :txs, Types::Strict::Array.member(Tx)
+      #   attribute :total, Types::Coercible::Int
+      #   attribute :from, Types::Coercible::Int
+      #   attribute :to, Types::Coercible::Int
+      # end
 
       # Extended ZenWallet transaction wiew
-      class AccountTx < Tx
-        attribute :wallet, Types::PKey
-        attribute :account, Types::PKey
-        attribute :amount, Types::Strict::Int
-        attribute :direction, Types::TxDirection
-        attribute :main_address, Types::Strict::String
-        attribute :addresses, Types::Strict::Array.member(Models::AddressAmount)
-        attribute :fees, Types::Strict::Int
-        attribute :peer_main_address, Types::Strict::String.optional
-        attribute :peer_amount, Types::Strict::Int.default(0)
-        attribute :peer_addresses,
-                  Types::Strict::Array.member(Models::AddressAmount)
-      end
+
     end
   end
 end

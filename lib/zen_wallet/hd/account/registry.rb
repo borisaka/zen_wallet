@@ -28,12 +28,14 @@ module ZenWallet
         end
 
         # Pregenerate all GAP limited addresses for possible discovery
-        def fill_gap_limit(chain)
-          gap_size = @repo.count(wid, idx, chain, has_txs: false)
-          gap_size.upto(GAP_LIMIT - 1) do
-            index = @repo.last_idx(wid, idx, chain)&.+(1)
-            index ||= 0
-            create_address(chain, index)
+        def fill_gap_limit
+          [EXTERNAL_CHAIN, INTERNAL_CHAIN].each do |chain|
+            gap_size = @repo.count(wid, idx, chain, has_txs: false)
+            gap_size.upto(GAP_LIMIT - 1) do
+              index = @repo.last_idx(wid, idx, chain)&.+(1)
+              index ||= 0
+              create_address(chain, index)
+            end
           end
         end
 

@@ -28,15 +28,19 @@ module ZenWallet
           sum_fn = ->(hashes) { [key, hashes.map(&map_fn).reduce(&reduce)] }
           ungroup_fn = ->(header, values) { Hash[[*header, sum_fn[values]]] }
           # Now wee need to know what exactly needed
-          if groupings.size.positive?
+          if groupings.size&.positive?
             groups = ary.group_by(&group_fun)
             groups.map(&ungroup_fn)
-          elsif ary.all? { |el| el.is_a?(Hash) } && key
+          elsif ary&.all? { |el| el.is_a?(Hash) } && key
             sum_fn[ary].last
           else
-            ary.reduce(&reduce)
+            ary&.reduce(&reduce)
           end
         end
+
+        # def collect_in_outs(tx) do
+        #
+        # end
 
         def self.sum(ary, key = nil, groupings = [])
           aggregate(ary, key, groupings, reduce: :+)
@@ -53,17 +57,31 @@ module ZenWallet
         def self.join_addr(addresses)
           addresses.join(",")
         end
-      end
+
+        def self.concat_all(hsh, result_key, operands)
+          result = operands.reduce([]) { |acc, elem| acc + hsh[elem] }
+          hsh.merge(result_key => result)
+        end
+
+        def self.most_valuable(arr, key, value)
+          arr&.max_by { |hs| hs[value] }&.fetch(key)
+        end
+
+        def self.wrap_all(ary, key)
+          { key => ary }
+        end
+
+        register(:negatize, ->(val) { -val })
+        register(:collect_amounts, t(:sum, :amount, %i(address)))
+     end
 
       BaseTransform = Class.new(Transproc::Transformer[Registry])
-
-
 
       TxInTransform = BaseTransform.define do
         symbolize_keys
         rename_keys valueSat: :amount, addr: :address
         reject_keys %i(scriptSig doubleSpentTxID value sequence)
-        constructor_inject(Models::TxIn)
+        # constructor_inject(Models::TxIn)
       end
 
       TxOutTransform = BaseTransform.define do
@@ -75,7 +93,7 @@ module ZenWallet
         # addresses
         map_value :address, ->(addr) { addr.join(",") }
         accept_keys %i(n amount address script type)
-        constructor_inject(Models::TxOut)
+        # constructor_inject(Models::TxOut)
       end
 
       TxTransform = BaseTransform.define do
@@ -90,16 +108,18 @@ module ZenWallet
         map_value :inputs, t(:map_array, TxInTransform)
         map_value :outputs, t(:map_array, TxOutTransform)
         reject_keys %i(version locktime blockhash blockheight size)
-        constructor_inject(Models::Tx)
+        # constructor_inject(Models::Tx)
       end
 
       TxPageTransform = BaseTransform.define do
         symbolize_keys
         rename_keys totalItems: :total, items: :txs
         map_value :txs, t(:map_array, TxTransform)
-        constructor_inject(Models::TxPage)
+        # constructor_inject(Models::TxPage)
       end
       require_relative "transformation/utxo"
+      # require_relative "transformation/tx_account_info"
     end
+
   end
 end

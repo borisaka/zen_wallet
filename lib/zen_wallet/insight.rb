@@ -1,30 +1,40 @@
 # frozen_string_literal: true
+require "dry-monads"
 require_relative "insight/client"
 require_relative "insight/transformation"
 # require_relative "insight/transaction"
 # require_relative "insight/balance"
+# "https://test-insight.bitpay.com/"
 module ZenWallet
   # Realtime Bitcore insight fettcher
   class Insight
-    BITCORE_MAINNET = "https://blockexplorer.com"
-    BITCORE_TESTNET = "https://testnet.blockexplorer.com"
+    include Dry::Monads::Try::Mixin
+    include Dry::Monads::Either::Mixin
+    include Dry::Monads::Maybe::Mixin
+    # https://test-insight.bitpay.com/
     # MAX_ADDRESSES_REQ = 100
     # @param network [BTC::Network] which bitcoin network to connect
     # @param addresses [HD::Account] list of addresses to watch
-    def initialize(network, addresses)
+    def initialize(network, account, addresses)
+      @account = account
       @addresses = addresses
       @network = network
       @client = insight_client
     end
 
     def transactions(from = 0, to = 20)
-      fetch_txs_page(from, to)
+      page = fetch_txs_page(from, to)
+      # Transformation::TxAccountInfo(@account.wallet_id,
+      #                               @account.id,
+      #                               @addresses,
+      #                               page[:txs])
     end
 
     # Fetch map UTXO
     def balance
-      utxo_json = @client.utxo(addresses_string)
-      Transformation::BalanceTransform.call(utxo: utxo_json)
+      Maybe(@client.utxo(addresses_string)).bind do |hsh|
+           Transformation::BalanceTransform.call(hsh)
+      end
     end
 
     # Broadcast btc transaction
@@ -38,6 +48,7 @@ module ZenWallet
     def fetch_txs_page(from, to)
       txs_json = @client.txs(addresses_string, from, to)
       Transformation::TxPageTransform.call(txs_json)
+      warn "CLient does not working"
     end
 
     def addresses_string
@@ -45,8 +56,7 @@ module ZenWallet
     end
 
     def insight_client
-      bitcore_url = @network.testnet? ? BITCORE_TESTNET : BITCORE_MAINNET
-      Insight::Client.new(bitcore_url)
+      Insight::Client.new(@network)
     end
   end
 end
