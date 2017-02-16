@@ -2,6 +2,7 @@
 require_relative "test_helper"
 require "zen_wallet/hd/account"
 require "mixins/address"
+require "zen_wallet/store"
 # require "zen_wallet/insight"
 module ZenWallet
   module HD
@@ -11,6 +12,9 @@ module ZenWallet
       def setup
         super
         @address_repo = mock
+        @store = mock
+        @store.responds_like_instance_of(ZenWallet::Store)
+        @container.register("store", @store)
         @container.register("address_repo", @address_repo)
         @model = @acc_balance_model
         @account = Account.new(@container, @model)
@@ -22,14 +26,25 @@ module ZenWallet
       end
 
       def test_request_receive_addr
-        @registry.expects(:fill_gap_limit).with(0)
+        @registry.expects(:fill_gap_limit)
         address_obj = address_model(@model, 0, 0)
         @registry.expects(:free_address).with(0).returns(address_obj)
         @registry.expects(:ensure_requested_mark).with(address_obj.address)
-        assert_equal address_obj, @account.request_receive_addr
+        assert_equal address_obj.address, @account.request_receive_addr
       end
 
-      def test_fetch_balance
+      def test_change_address
+        address_obj = address_model(@model, 1, 0)
+        @registry.expects(:free_address).with(1).returns(address_obj)
+        assert_equal address_obj.address, @account.change_address
+      end
+
+      def test_balance
+        @store.expects(:balance).with(@model).returns(10_000)
+        assert_equal @account.balance, 10_000
+      end
+
+      def test_update
         all_addresses = (0..5).map { |i| gen_address(@model, 0, i) }
         @registry.stubs(:pluck_addresses).returns(all_addresses)
         insight = mock
@@ -37,8 +52,15 @@ module ZenWallet
           .expects(:new)
           .with(BTC::Network.mainnet, @acc_balance_model, all_addresses)
           .returns(insight)
-        insight.stubs(:balance).returns "OK"
-        assert_equal "OK", @account.fetch_balance
+        insight.stubs(:balance).returns(OpenStruct.new(total: 10_000))
+        @store.expects(:store_balance).with(@model, 10_000)
+        insight.stubs(:transactions)
+               .returns([{ used_addresses: %w(2 4) },
+                         { used_addresses: %w(2 11 33) },
+                         { used_addresses: %w(2 10 33) }])
+        @registry.expects(:ensure_has_txs_mark).with(%w(2 4 11 33 10))
+        @registry.expects(:fill_gap_limit)
+        @account.update
       end
 
       def test_provide_keys
@@ -49,7 +71,7 @@ module ZenWallet
         keychain = BTC::Keychain.new(xprv: acc.xprv)
         expected = addresses.map do |address|
           [address.address, keychain.derived_keychain(address.chain)
-                            .derived_key(address.index)]
+                                    .derived_key(address.index)]
         end
         @address_repo.expects(:find)
                      .with(addresses.map(&:address))
@@ -58,7 +80,7 @@ module ZenWallet
         assert_equal actual.length, expected.length
         expected.each do |touple|
           same = actual.detect { |a| a.address == touple[0] }
-          assert_equal same.key,touple[1]
+          assert_equal same.key, touple[1]
         end
       end
     end

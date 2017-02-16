@@ -44,8 +44,10 @@ module ZenWallet
             .order(:index).as(Model).first
       end
 
-      def pluck_address(wallet_id, account_index, **filters)
-        query = root.by_account(wallet_id, account_index)
+      def pluck_address(wallet_id, account_index, offset, **filters)
+        query = root.select(:address).by_account(wallet_id, account_index)
+                    .order(:index).reverse
+                    .offset(offset)
         query = query.where(filters) if filters
         query.pluck(:address)
       end

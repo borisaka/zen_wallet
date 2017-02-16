@@ -95,57 +95,21 @@ module ZenWallet
         assert rec[:has_txs]
       end
 
-
       def test_pluck_address
         # ext, int = [], []
-        ext_chain = (0..4).map { |i| address_model(@acc_balance_model, 0, i) }
-        int_chain = (0..4).map { |i| address_model(@acc_balance_model, 1, i) }
+        ext_chain = (0..60).map { |i| address_attrs(@acc_balance_model, 0, i) }
+        int_chain = (0..60).map { |i| address_attrs(@acc_balance_model, 1, i) }
         all = int_chain + ext_chain
-        all.each { |addr| @dataset.insert(addr.to_h) }
-        assert_equal all.map(&:address).sort,
-                     @repo.pluck_address(*@finders).sort
-        assert_equal ext_chain.map(&:address).sort,
-                     @repo.pluck_address(*@finders, chain: 0).sort
+        @dataset.import(all.first.keys, all.map(&:values))
+        # all.each { |addr| @dataset.insert(addr.to_h) }
+        limited = int_chain.map { |attrs| attrs[:address] }.sort.reverse[0..39]
+        w_offset = ext_chain.map { |attrs| attrs[:address] }
+                            .sort.reverse[39..-1]
+        assert_equal limited, @repo.pluck_address(*@finders, 0, chain: 0).sort
+        assert_equal w_offset,
+                     @repo.pluck_address(*@finders, 40, chain: 1).sort
       end
 
-      # def test_next_recv
-      #   # First address anyway
-      #   @dataset.import(@addresses_attrs.first.keys,
-      #                   @addresses_attrs.map(&:values))
-      #   assert_equal @addresses_models.first, @repo.next_recv(*@finders, true)
-      #   assert_equal @addresses_models.first, @repo.next_recv(*@finders, false)
-      #   # Ignores used anyway
-      #   @dataset.where { index < 5 }.update(has_txs: true)
-      #   assert_equal @addresses_models[5], @repo.next_recv(*@finders, true)
-      #   assert_equal @addresses_models[5], @repo.next_recv(*@finders, false)
-      #   # Ignores requested if flag required
-      #   @dataset.where { index < 9 }.update(requested: true)
-      #   assert_equal @addresses_models[5], @repo.next_recv(*@finders, false)
-      #   assert_equal @addresses_models[9], @repo.next_recv(*@finders, true)
-      # end
-      #
-      # def test_gap_size
-      #   # All in gap
-      #   assert_equal 0, @repo.gap_size(*@finders)
-      #   @dataset.import(@addresses_attrs.first.keys,
-      #                   @addresses_attrs.map(&:values))
-      #   assert_equal 20, @repo.gap_size(*@finders)
-      #   # Used still in gap
-      #   @dataset.where { index < 10 }.update(requested: true)
-      #   assert_equal 20, @repo.gap_size(*@finders)
-      #   # Used is not
-      #   @dataset.where { index < 10 }.update(has_txs: true)
-      #   assert_equal 10, @repo.gap_size(*@finders)
-      # end
-      #
-      # def test_next_index
-      #   assert_equal @repo.next_index(*@finders), 0
-      #   @dataset.insert(@addresses_attrs.shift)
-      #   assert_equal @repo.next_index(*@finders), 1
-      #   @dataset.import(@addresses_attrs.first.keys,
-      #                   @addresses_attrs.map(&:values))
-      #   assert_equal @repo.next_index(*@finders), 20
-      # end
     end
   end
 end

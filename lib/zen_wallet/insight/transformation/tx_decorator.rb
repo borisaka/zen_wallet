@@ -25,7 +25,6 @@ module ZenWallet
         end
 
         def self.collect_total(tx, key)
-          puts "COLLECT BY(#{key}) val: #{tx[:calc_ins]}"
           ins = collect_amount(tx[:calc_ins][key])
           outs = collect_amount(tx[:calc_outs][key])
           outs - ins
@@ -60,6 +59,8 @@ module ZenWallet
               ->(hsh){ hsh[:calc_ins][:account] + hsh[:calc_outs][:account] }
             map_value :out_address,
               ->(hsh){ hsh[:calc_ins][:passengers] + hsh[:calc_outs][:passengers] }
+            copy_keys main_address: :used_addresses
+            map_value :used_addresses, t(:map_array, ->(io) { io[:address] })
             map_value :main_address, t(:most_paid)
             map_value :out_address, t(:most_paid)
             map_value :total, t(:collect_total, :account)

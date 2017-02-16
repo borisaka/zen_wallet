@@ -37,6 +37,8 @@ module ZenWallet
         attribute :inputs, Types::Coercible::Array.member(TxIn)
         attribute :outputs, Types::Coercible::Array.member(TxOut)
         attribute :fees, Types::Coercible::Int
+        attribute :amount_in, Types::Coercible::Int
+        attribute :amount_out, Types::Coercible::Int
       end
 
       # class AccountTx < Tx

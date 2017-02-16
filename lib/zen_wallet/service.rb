@@ -8,6 +8,7 @@ require "btcruby"
 require_relative "persistence/repositories/wallet_repo"
 require_relative "persistence/repositories/account_repo"
 require_relative "persistence/repositories/address_repo"
+require_relative "store"
 
 module ZenWallet
   # Stores wallets and addresses in database
@@ -17,6 +18,7 @@ module ZenWallet
       setting :db, "sqlite:/"
       setting :automigrate, true
       setting :bitcoin_network, :mainnet
+      setting :rethinkdb, db: "wallet_db"
     end
 
     class Migrator
@@ -43,6 +45,8 @@ module ZenWallet
         register :rom, ROM.container(rom_config)
         register_repos
         register :bitcoin_network, BTC::Network.send(config.bitcoin_network)
+        rethink = RethinkDB::Connection.new(config.rethinkdb)
+        register :store, Store.new(rethink, migrate: true)
       end
 
       def register_repos
