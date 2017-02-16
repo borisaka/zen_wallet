@@ -86,6 +86,7 @@ module ZenWallet
         end
         # @todo fetch all tx pages and persist in store
         history = insight.transactions
+        return if history&.empty?
         now_used = history.map { |h| h[:used_addresses] }.flatten.uniq
         @registry.ensure_has_txs_mark(now_used)
         @registry.fill_gap_limit
