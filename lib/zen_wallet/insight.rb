@@ -34,8 +34,11 @@ module ZenWallet
     def balance
       return nil if @addresses.empty?
       Maybe(@client.utxo(addresses_string)).bind do |hsh|
-            Transformation::BalanceTransform.call(hsh)
+        Transformation::BalanceTransform.call(hsh)
       end
+    # TODO: fix that
+    rescue
+      nil
     end
 
     # Broadcast btc transaction

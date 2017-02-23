@@ -21,7 +21,6 @@ module ZenWallet
       end
 
       def txs(addresses, from, to)
-        # binding.pry
         post("addrs/txs", addrs: addresses, from: from, to: to)
       end
 
