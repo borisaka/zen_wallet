@@ -56,7 +56,7 @@ module ZenWallet
 
       def build_input(info)
         u = info.utxo
-        BTC::TransactionInput.new(previous_id: u.txid, previous_index: u.vout)
+        BTC::TransactionInput.new(previous_id: u.txid, previous_index: u.n)
         # hash_typev = BTC::SIGHASH_ALL
       end
     end

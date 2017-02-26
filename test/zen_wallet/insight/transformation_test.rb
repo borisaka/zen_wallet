@@ -6,6 +6,7 @@ module ZenWallet
   class Insight
     module Transformation
       class TransformationTest < Minitest::Test
+        # @todo move to assets
         def setup
           @outputs =
             [{ "value" => "0.35421355", "n" => 0,
@@ -16,7 +17,9 @@ module ZenWallet
                        "valueSat" => 25_383_649, "scriptSig" => "s" }]
           @transaction = {
             "txid" => "tx", "vin" => @inputs, "vout" => @outputs,
-            "confirmations" => 0, "time" => 1_485_561_166, "blocktime" => nil
+            "confirmations" => 0, "time" => 1_485_561_166, "blocktime" => nil,
+            "blockhash " => nil, "fees" => 10_000e-8, "valueIn" => 0.4,
+            "valueOut" => 0.399
           }
           @page = { "from" => 0, "to" => 10,
                     "totalItems" => 1, "items" => [@transaction] }
@@ -35,25 +38,28 @@ module ZenWallet
             Models::Tx.new(txid: "tx", confirmations: 0,
                            time: Time.parse("2017-01-28T02:52:46+03:00"),
                            blocktime: nil, inputs: [@parsed_input],
-                           outputs: [@parsed_output])
-          @parsed_tx_page =
-            Models::TxPage.new(from: 0, to: 10, total: 1, txs: [@parsed_tx])
+                           blockhash: nil,
+                           outputs: [@parsed_output], fees: 10_000,
+                           amount_in: 40_000_000, amount_out: 39_900_000)
+          # @parsed_tx_page =
+          #   Models::TxPage.new(from: 0, to: 10, total: 1, txs: [@parsed_tx])
         end
+
         def test_tx_in_transform
-          assert_equal @parsed_input, TxInTransform.call(@inputs.first)
+          assert_equal @parsed_input.to_h, TxInTransform.call(@inputs.first)
         end
 
         def test_tx_out_transform
-          assert_equal @parsed_output, TxOutTransform.call(@outputs.first)
+          assert_equal @parsed_output.to_h, TxOutTransform.call(@outputs.first)
         end
 
         def test_tx_transform
-          assert_equal @parsed_tx, TxTransform.call(@transaction)
+          assert_equal @parsed_tx.to_h, TxTransform.call(@transaction)
         end
 
-        def test_tx_page_transform
-          assert_equal @parsed_tx_page, TxPageTransform.call(@page)
-        end
+        # def test_tx_page_transform
+        #   assert_equal @parsed_tx_page, TxPageTransform.call(@page)
+        # end
       end
     end
   end

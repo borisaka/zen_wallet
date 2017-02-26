@@ -58,6 +58,10 @@ module ZenWallet
           addresses.join(",")
         end
 
+        def self.supply_blockhash(tx)
+          tx[:blockhash] ? tx : tx.merge(blockhash: nil)
+        end
+
         def self.concat_all(hsh, result_key, operands)
           result = operands.reduce([]) { |acc, elem| acc + hsh[elem] }
           hsh.merge(result_key => result)
@@ -107,7 +111,10 @@ module ZenWallet
         map_value :blocktime, t(:time_at)
         map_value :inputs, t(:map_array, TxInTransform)
         map_value :outputs, t(:map_array, TxOutTransform)
-        reject_keys %i(version locktime blockhash blockheight size)
+        copy_keys confirmations: :confirmed
+        map_value :confirmed, ->(count) { count.positive? }
+        supply_blockhash
+        reject_keys %i(version locktime blockheight size)
         # constructor_inject(Models::Tx)
       end
 

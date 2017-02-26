@@ -41,28 +41,23 @@ module ZenWallet
 
         # Select unused address for chain. if possible not requested
         def free_address(chain)
-          address_obj = @repo.first_by(wid, idx, chain,
-                                       has_txs: false,
-                                       requested: false)
-          address_obj || @repo.first_by(wid, idx, chain, has_txs: false)
+          @repo.free_address(wid, idx, chain)
         end
 
         # Mark address as requested unless alreadt
-        # @todo Update collection in sql
-        def ensure_requested_mark(addr)
-          @repo.update(addr, requested: true) unless @repo.find(addr).requested
+        def ensure_requested_mark(addrs)
+          @repo.update_addresses(addrs, requested: true)
         end
 
         # Mark address as used unless alreadt
-        # @todo Update collection in sql
         def ensure_has_txs_mark(addr)
-          @repo.update(addr, has_txs: true) unless @repo.find(addr).has_txs
+          @repo.update_addresses(addr, has_txs: true)
         end
 
         # pluck array of addresses strings
         # @return [Array<Sring>]
-        def pluck_addresses(**filters)
-          @repo.pluck_address(wid, idx, **filters)
+        def pluck_addresses(offset: 0, **filters)
+          @repo.pluck_address(wid, idx, offset, **filters)
         end
 
         private

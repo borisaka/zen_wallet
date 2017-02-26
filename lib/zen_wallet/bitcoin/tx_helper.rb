@@ -7,18 +7,16 @@ module ZenWallet
     # Helper to make bitcoin transaction
     # only p2ksh for now.
     class TxHelper
-      # def change_address()
-      # attr_accessor :outputs, inputs
-      # Struct working objects
-      # @attr address [::BTC::Address]
       NotEnoughMoney = Class.new(StandardError)
+      # BuildedTx = Struct.new(:txid, :inputs, :outputs)
       # it only request to spent money
-      # @param balance [Insight::Models::Balance]
-      #   what stores all account UTXO and some usefull detail
       # @param tx_proposal [TxProposal] simple struct with outputs
-      def initialize(tx_proposal, balance)
-        @balance = balance
+      # @param utxo [Array<Insight::Models::Utxo>]
+      # @param balance [Integer] balance
+      def initialize(tx_proposal, balance, utxo)
         @tx_proposal = tx_proposal
+        @balance = balance
+        @utxo = utxo
         @total_amount = @tx_proposal.outputs.map(&:amount).reduce(:+) +
                         @tx_proposal.fees
       end
@@ -26,10 +24,9 @@ module ZenWallet
       # Counts balance, dust amounts, etc...
       def build(&key_provider)
         builder = TxBuilder.new
-        raise NotEnoughMoney if @balance.total < @total_amount
+        raise NotEnoughMoney if @balance < @total_amount
         @tx_proposal.outputs.each { |out| builder.output(out) }
-        info = InputsHelper
-               .prepare_inputs(@balance.utxo, @total_amount, &key_provider)
+        info = InputsHelper.prepare_inputs(@utxo, @total_amount, &key_provider)
         change_out = change_output(info.change)
         builder.output(change_out) if change_out
         info.inputs.each { |input| builder.input(input) }

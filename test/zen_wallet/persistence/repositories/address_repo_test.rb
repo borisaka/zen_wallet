@@ -69,83 +69,57 @@ module ZenWallet
         assert_equal 0, @repo.last_idx(*@finders, 0)
       end
 
-      def test_first_by
-        assert_nil @repo.first_by(*@finders, 0)
-        attrs, models = [], []
-        attrs << address_attrs(@acc_balance_model, 0, 0,
-                               has_txs: true,
-                               requested: true)
-        attrs << address_attrs(@acc_balance_model, 0, 1, requested: true)
-        attrs << address_attrs(@acc_balance_model, 0, 2)
-        attrs.each do |at|
-          @dataset.insert(at)
-          models << HD::Models::Address.new(at)
-        end
-        assert_equal models[0], @repo.first_by(*@finders, 0)
-        assert_equal models[1], @repo.first_by(*@finders, 0, has_txs: false)
-        assert_equal models[2], @repo.first_by(*@finders, 0, requested: false)
-      end
+      # def test_first_by
+      #   assert_nil @repo.first_by(*@finders, 0)
+      #   attrs, models = [], []
+      #   attrs << address_attrs(@acc_balance_model, 0, 0,
+      #                          has_txs: true,
+      #                          requested: true)
+      #   attrs << address_attrs(@acc_balance_model, 0, 1, requested: true)
+      #   attrs << address_attrs(@acc_balance_model, 0, 2)
+      #   attrs.each do |at|
+      #     @dataset.insert(at)
+      #     models << HD::Models::Address.new(at)
+      #   end
+      #   assert_equal models[0], @repo.first_by(*@finders, 0)
+      #   assert_equal models[1], @repo.first_by(*@finders, 0, has_txs: false)
+      #   assert_equal models[2], @repo.first_by(*@finders, 0, requested: false)
+      # end
 
-      def test_update
-        attrs = address_attrs(@acc_balance_model, 0, 0)
-        @dataset.insert(attrs)
-        @repo.update(attrs[:address], requested: true, has_txs: true)
-        rec = @dataset.first
-        assert rec[:requested]
-        assert rec[:has_txs]
+      def test_update_address
+        attrs = (0..99).map { |i| address_attrs(@acc_balance_model, 0, i) }
+        @dataset.import(attrs.first.keys, attrs.map(&:values))
+        addresses = attrs.map { |hsh| hsh[:address] }
+        @repo.update_addresses(addresses, requested: true, has_txs: true)
+        records = @dataset.where(requested: true, has_txs: true).all
+        assert_equal 100, records.length
       end
-
 
       def test_pluck_address
         # ext, int = [], []
-        ext_chain = (0..4).map { |i| address_model(@acc_balance_model, 0, i) }
-        int_chain = (0..4).map { |i| address_model(@acc_balance_model, 1, i) }
+        ext_chain = (0..60).map { |i| address_attrs(@acc_balance_model, 0, i) }
+        int_chain = (0..60).map { |i| address_attrs(@acc_balance_model, 1, i) }
         all = int_chain + ext_chain
-        all.each { |addr| @dataset.insert(addr.to_h) }
-        assert_equal all.map(&:address).sort,
-                     @repo.pluck_address(*@finders).sort
-        assert_equal ext_chain.map(&:address).sort,
-                     @repo.pluck_address(*@finders, chain: 0).sort
+        @dataset.import(all.first.keys, all.map(&:values))
+        # all.each { |addr| @dataset.insert(addr.to_h) }
+        # limited = int_chain.map { |attrs| attrs[:address] }.sort.reverse[0..39]
+        # w_offset = ext_chain.map { |attrs| attrs[:address] }
+        #                     .sort.reverse[39..-1]
+        expected_ext = ext_chain.map { |h| h[:address] }.sort
+        assert_equal expected_ext,
+                     @repo.pluck_address(*@finders, 0, chain: 0).sort
+        # assert_equal w_offset,
+        #              @repo.pluck_address(*@finders, 40, chain: 1).sort
       end
 
-      # def test_next_recv
-      #   # First address anyway
-      #   @dataset.import(@addresses_attrs.first.keys,
-      #                   @addresses_attrs.map(&:values))
-      #   assert_equal @addresses_models.first, @repo.next_recv(*@finders, true)
-      #   assert_equal @addresses_models.first, @repo.next_recv(*@finders, false)
-      #   # Ignores used anyway
-      #   @dataset.where { index < 5 }.update(has_txs: true)
-      #   assert_equal @addresses_models[5], @repo.next_recv(*@finders, true)
-      #   assert_equal @addresses_models[5], @repo.next_recv(*@finders, false)
-      #   # Ignores requested if flag required
-      #   @dataset.where { index < 9 }.update(requested: true)
-      #   assert_equal @addresses_models[5], @repo.next_recv(*@finders, false)
-      #   assert_equal @addresses_models[9], @repo.next_recv(*@finders, true)
-      # end
-      #
-      # def test_gap_size
-      #   # All in gap
-      #   assert_equal 0, @repo.gap_size(*@finders)
-      #   @dataset.import(@addresses_attrs.first.keys,
-      #                   @addresses_attrs.map(&:values))
-      #   assert_equal 20, @repo.gap_size(*@finders)
-      #   # Used still in gap
-      #   @dataset.where { index < 10 }.update(requested: true)
-      #   assert_equal 20, @repo.gap_size(*@finders)
-      #   # Used is not
-      #   @dataset.where { index < 10 }.update(has_txs: true)
-      #   assert_equal 10, @repo.gap_size(*@finders)
-      # end
-      #
-      # def test_next_index
-      #   assert_equal @repo.next_index(*@finders), 0
-      #   @dataset.insert(@addresses_attrs.shift)
-      #   assert_equal @repo.next_index(*@finders), 1
-      #   @dataset.import(@addresses_attrs.first.keys,
-      #                   @addresses_attrs.map(&:values))
-      #   assert_equal @repo.next_index(*@finders), 20
-      # end
+      def test_free_address
+        attrs = (0..10).map { |i| address_attrs(@acc_balance_model, 0, i) }
+        @dataset.import(attrs.first.keys, attrs.map(&:values))
+        assert_equal attrs.last[:address], @repo.free_address(*@finders, 0)
+        @dataset.where { index > 5 }.update(has_txs: true)
+        assert_equal attrs[5][:address], @repo.free_address(*@finders, 0)
+      end
+
     end
   end
 end

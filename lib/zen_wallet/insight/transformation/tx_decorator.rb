@@ -25,7 +25,6 @@ module ZenWallet
         end
 
         def self.collect_total(tx, key)
-          puts "COLLECT BY(#{key}) val: #{tx[:calc_ins]}"
           ins = collect_amount(tx[:calc_ins][key])
           outs = collect_amount(tx[:calc_outs][key])
           outs - ins
@@ -38,34 +37,55 @@ module ZenWallet
         def self.most_paid(ary)
           ary.max_by { |it| it[:amount] }&.fetch(:address)
         end
+
+        def self.calc_details(hsh)
+          hsh.merge(
+            account_detail: {
+              inputs: hsh[:calc_ins][:account],
+              outputs: hsh[:calc_outs][:account]
+            },
+            passengers_outs: hsh[:calc_outs][:passengers]
+          )
+        end
+
+        def self.calc_out_address(hsh)
+          receive = hsh[:total].positive?
+          addr = receive ? hsh[:main_address] : most_paid(hsh[:passengers_outs])
+          hsh.merge(out_address: addr)
+        end
+
+        def self.fetch_addresses(addrs)
+          addrs.map { |hsh| hsh[:address] }.uniq
+        end
       end
 
       DecTxTransform = Class.new(Transproc::Transformer[DecTXRegistry])
 
-      def self.TxDecorator(my_addresses, txs)
+      def self.TxDecorator(wallet, account, my_addresses, txs)
         txDecorator = DecTxTransform.define do
+          map_array ->(tx) { TxTransform.call(tx) }
           map_array do
             deep_symbolize_keys
-            # map_value :walletxid, t(:injector)
-            # map_value :account_label, t(:injector)
-            # map_value :my_addresses, t(:injector)
             copy_keys inputs: :calc_ins, outputs: :calc_outs
             map_value :calc_ins,  t(:separate_by_addresses, my_addresses)
             map_value :calc_outs, t(:separate_by_addresses, my_addresses)
+            calc_details
             nest :total, %i(calc_ins calc_outs)
-
             copy_keys total: :main_address
             copy_keys total: :out_address
             map_value :main_address,
               ->(hsh){ hsh[:calc_ins][:account] + hsh[:calc_outs][:account] }
-            map_value :out_address,
-              ->(hsh){ hsh[:calc_ins][:passengers] + hsh[:calc_outs][:passengers] }
+            copy_keys main_address: :used_addresses
+            map_value :used_addresses, t(:fetch_addresses)
             map_value :main_address, t(:most_paid)
-            map_value :out_address, t(:most_paid)
             map_value :total, t(:collect_total, :account)
+            calc_out_address
+            reject_keys %i(passengers_outs)
+            constructor_inject Models::AccountTx
           end
         end
-        txDecorator.call(txs)
+        mapped = txs.map { |tx| tx.merge(wallet: wallet, account: account) }
+        txDecorator.call(mapped)
       end
     end
   end

@@ -25,17 +25,23 @@ module ZenWallet
 
     def transactions(from = 0, to = 20)
       return [] if @addresses.empty?
-      txs_json = @client.txs(addresses_string, from, to)
-      page = Transformation::TxPageTransform.call(txs_json)
-      Transformation.TxDecorator(addresses_string, page[:txs])
+      page = @client.txs(addresses_string, from, to)
+      # page = Transformation::TxPageTransform.call(txs_json)
+      txs = Transformation.TxDecorator(@account.wallet_id,
+                                       @account.index,
+                                       addresses_string,
+                                       page["items"])
+      Models::TxPage.new(from: page["from"],
+                         to: page["to"],
+                         count: page["totalItems"],
+                         txs: txs)
     end
 
     # Fetch map UTXO
     def balance
-      return nil if @addresses.empty?
-      Maybe(@client.utxo(addresses_string)).bind do |hsh|
-            Transformation::BalanceTransform.call(hsh)
-      end
+      # return nil if @addresses.empty?
+      ut = @client.utxo(addresses_string)
+      Transformation::BalanceTransform.call(ut)
     end
 
     # Broadcast btc transaction
