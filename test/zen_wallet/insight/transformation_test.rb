@@ -18,7 +18,8 @@ module ZenWallet
           @transaction = {
             "txid" => "tx", "vin" => @inputs, "vout" => @outputs,
             "confirmations" => 0, "time" => 1_485_561_166, "blocktime" => nil,
-            "fees" => 10_000e-8, "valueIn" => 0.4, "valueOut" => 0.399
+            "blockhash " => nil, "fees" => 10_000e-8, "valueIn" => 0.4,
+            "valueOut" => 0.399
           }
           @page = { "from" => 0, "to" => 10,
                     "totalItems" => 1, "items" => [@transaction] }
@@ -37,6 +38,7 @@ module ZenWallet
             Models::Tx.new(txid: "tx", confirmations: 0,
                            time: Time.parse("2017-01-28T02:52:46+03:00"),
                            blocktime: nil, inputs: [@parsed_input],
+                           blockhash: nil,
                            outputs: [@parsed_output], fees: 10_000,
                            amount_in: 40_000_000, amount_out: 39_900_000)
           # @parsed_tx_page =

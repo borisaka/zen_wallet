@@ -8,7 +8,7 @@ require "btcruby"
 require_relative "persistence/repositories/wallet_repo"
 require_relative "persistence/repositories/account_repo"
 require_relative "persistence/repositories/address_repo"
-require_relative "store"
+require_relative "hd/store"
 
 module ZenWallet
   # Stores wallets and addresses in database
@@ -40,13 +40,19 @@ module ZenWallet
         register :sequel, sequel
         Migrator.new(sequel).run
         rom_config = ROM::Configuration.new(:sql, sequel)
+        logger = Logger.new($STDOUT)
+        logger.level = :debug
         rom_config.auto_registration("#{__dir__}/persistence",
                                      namespace: "ZenWallet::Persistence")
-        register :rom, ROM.container(rom_config)
+        rom_container = ROM.container(rom_config) do |conf|
+          conf.gateways[:default].use_logger(logger)
+        end
+        register :rom, rom_container
         register_repos
         register :bitcoin_network, BTC::Network.send(config.bitcoin_network)
         rethink = RethinkDB::Connection.new(config.rethinkdb)
-        register :store, Store.new(rethink, migrate: true)
+        register :rethinkdb, rethink
+        HD::Store::Migrator.new(rethink).migrate
       end
 
       def register_repos

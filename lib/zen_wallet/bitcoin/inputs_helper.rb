@@ -35,9 +35,9 @@ module ZenWallet
 
       # @api private
       def select(utxo, amount)
-        if utxo.any? { |u| u.confirmations.zero? }
-          confirmed = utxo.select { |u| u.confirmations.positive? }
-          return collect(confirmed, amount) if enough?(confirmed, amount)
+        confirmed = utxo.select(&:confirmed)
+        if !confirmed.empty? && enough?(confirmed, amount)
+          return collect(confirmed, amount)
         end
         collect(utxo, amount)
       end

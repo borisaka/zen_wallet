@@ -24,8 +24,9 @@ module ZenWallet
     # UTXO
     class Utxo < AddressAmount
       attribute :txid, Types::Coercible::String
-      attribute :vout, Types::Coercible::Int
+      attribute :n, Types::Coercible::Int
       attribute :script, Types::Coercible::String
+      attribute :confirmed, Types::Strict::Bool
       attribute :confirmations, Types::Coercible::Int
     end
 

@@ -2,6 +2,7 @@
 require "zen_wallet/insight"
 require "zen_wallet/bitcoin/tx_helper"
 require_relative "account/registry"
+require_relative "store"
 # require "zen_wallet/transaction_builder"
 # require_relative "address"
 module ZenWallet
@@ -33,7 +34,7 @@ module ZenWallet
         @network = container.resolve("bitcoin_network")
         @registry = Registry.new(@model, @address_repo, @network,
                                  @keychain.public_keychain)
-        @store = container.resolve("store")
+        @store = Store.new(container.resolve("rethinkdb"), @model)
       end
 
       # flag if account trusted
@@ -54,41 +55,64 @@ module ZenWallet
       #   account try to use address what is not requested
       #   'requested' addresses will use only if gap limit is full
       # @return [Models::Address] bitcoin external chain address
-      def request_receive_addr
+      def request_receive_address
         @registry.fill_gap_limit
-        address_obj = @registry.free_address(Registry::EXTERNAL_CHAIN)
-        @registry.ensure_requested_mark(address_obj.address)
-        address_obj.address
+        address = @registry.free_address(Registry::EXTERNAL_CHAIN)
+        @registry.ensure_requested_mark(address)
+        address
       end
 
-      # Show free addresses
-      def receive_addresses
-        @registry.pluck_addresses(has_txs: false)
+      # Free address from EXTERNAL_CHAIN. requests new if does not find
+      def receive_address
+        address = @registry.free_address(Registry::EXTERNAL_CHAIN)
+        address || request_receive_address
       end
 
+      # Free address from INTERNAL_CHAIN
       def change_address
-        @registry.free_address(Registry::INTERNAL_CHAIN).address
+        @registry.free_address(Registry::INTERNAL_CHAIN)
       end
 
+      # Balance from utxo
       def balance
-        @store.balance(@model)
+        @store.utxo.balance
       end
 
+      def utxo
+        @store.utxo.load.map do |uh|
+          Insight::Models::Utxo.new(uh.map{ |k, v| [k.to_sym, v] }.to_h)
+        end
+      end
+
+      # Loads transactions history
       def history(from = 0, to = 20)
-        make_insight.transactions(from, to)
+        @store.transactions.load(from, to)
+        # make_insight.transactions(from, to)
+        # now_used = history.map { |h| h[:used_addresses] }.flatten.uniq
+        # unless now_used.empty?
+        #   @registry.ensure_has_txs_mark(now_used)
+        #   @registry.fill_gap_limit
+        # end
       end
 
       def update
         insight = make_insight
-        detailed_balance = insight.balance
-        if detailed_balance&.total
-          @store.store_balance(@model, detailed_balance.total)
+        step = 50
+        from, to = 0, step
+        loop do
+          history = insight.transactions(from, to)
+          break if history.count.zero?
+          new_txs = @store.transactions.compare_and_save(history.txs)
+          @store.utxo.update_from_txs(new_txs) unless new_txs.empty?
+          from, to = [from, to].map { |i| i + step }
+          now_used = new_txs.map(&:used_addresses).flatten
+          @registry.ensure_has_txs_mark(now_used)
+          confirmed_txs = history.txs.select(&:confirmed)
+          updated_ids = @store.transactions
+                              .update_confirmations(confirmed_txs.map(&:to_h))
+          @store.utxo.confirm(updated_ids) unless updated_ids.empty?
+          break if new_txs.length < history.txs.length || from >= history.count
         end
-        # @todo fetch all tx pages and persist in store
-        history = insight.transactions
-        return if history&.empty?
-        now_used = history.map { |h| h[:used_addresses] }.flatten.uniq
-        @registry.ensure_has_txs_mark(now_used)
         @registry.fill_gap_limit
       end
 
@@ -118,14 +142,13 @@ module ZenWallet
       #   amount + fee
       # @todo feeperkb
       def spend(outputs, fees, keychain = nil)
-        insight = make_insight
-        balance = insight.balance
         raise PrivateKeychainRequired unless keychain || @model.xprv
         keychain ||= BTC::Keychain.new(xprv: @model.xprv)
         proposal = tx_proposal(outputs, fees, change_address)
-        tx_helper = Bitcoin::TxHelper.new(proposal, balance)
+        tx_helper = Bitcoin::TxHelper.new(proposal, balance, utxo)
         raw = tx_helper.build { |addrsses| provide_keys(addrsses, keychain) }
-        txid = insight.broadcast(raw)
+        txid = make_insight.broadcast(raw)
+        update
         txid
       end
 

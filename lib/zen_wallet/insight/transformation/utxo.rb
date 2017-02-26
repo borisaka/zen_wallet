@@ -19,7 +19,10 @@ module ZenWallet
           map_array do
             rename_keys amount: :mmm
             rename_keys scriptPubKey: :script, satoshis: :amount
-            accept_keys %i(address txid vout script confirmations amount)
+            rename_keys vout: :n
+            copy_keys confirmations: :confirmed
+            map_value :confirmed, ->(count) { count.to_i.positive? }
+            accept_keys %i(address txid n script confirmations confirmed amount)
           end
         end
         # t(:map_array, UtxoTransform)
@@ -34,6 +37,6 @@ module ZenWallet
         end
         constructor_inject Models::Balance
       end
-      end
     end
   end
+end

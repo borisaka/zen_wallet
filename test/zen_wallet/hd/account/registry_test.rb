@@ -55,24 +55,16 @@ module ZenWallet
         def test_free_address
           # If has not requested
           expected = address_model(@account, 0, 10)
-          @repo.expects(:first_by)
-               .with(@wid, @idx, 0, has_txs: false, requested: false)
+          @repo.expects(:free_address)
+               .with(@wid, @idx, 0)
                .returns(expected)
           assert_equal expected, @subject.free_address(0)
-          expected = address_model(@account, 1, 5, requested: true)
-          @repo.expects(:first_by)
-               .with(@wid, @idx, 1, has_txs: false, requested: false)
-               .returns(nil)
-          @repo.expects(:first_by)
-               .with(@wid, @idx, 1, has_txs: false).returns(expected)
-          assert_equal expected, @subject.free_address(1)
         end
 
         def test_ensure_requested_mark
           models = (0..10).map { |i| address_model(@account, 0, i) }
           addrs = models.map(&:address)
-          # @repo.expects(:find).with(addrs).returns(models)
-          @repo.expects(:update).with(addrs, requested: true)
+          @repo.expects(:update_addresses).with(addrs, requested: true)
           @subject.ensure_requested_mark(addrs)
           # assert_equal models, (0..10).map do |i|
           #   address_model(@account, 0, i, requested: true)
@@ -83,7 +75,7 @@ module ZenWallet
           models = (0..10).map { |i| address_model(@account, 0, i) }
           addrs = models.map(&:address)
           # @repo.expects(:find).with(addrs).returns(models)
-          @repo.expects(:update).with(addrs, has_txs: true)
+          @repo.expects(:update_addresses).with(addrs, has_txs: true)
           @subject.ensure_has_txs_mark(addrs)
           # assert_equal models, ((0..10).map do |i|
           #   address_model(@account, 0, i, has_txs: true)
