@@ -47,7 +47,7 @@ module ZenWallet
         end
 
         def self.btc_to_sat(btc)
-          Integer(btc.to_f * 1e8)
+          Integer((btc.to_f * 1e8).round)
         end
 
         def self.time_at(num)

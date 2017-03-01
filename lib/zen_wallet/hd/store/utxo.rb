@@ -10,29 +10,30 @@ module ZenWallet
         # Updates UTXO from new transactions
         #   delete utxo what spent
         #   insert new from outputs assigned to account addresses
-        def update_from_txs(txs)
-          to_insert = txs.map do |tx|
-            tx.account_detail.outputs
-              .map(&:to_h)
-              .map do |h|
-                h.merge(txid: tx.txid,
-                        wallet: wid,
-                        account: idx,
-                        confirmations: tx.confirmations,
-                        confirmed: tx.confirmed)
-              end
-          end.flatten
-          to_delete = txs.map { |tx| tx.account_detail.inputs }.flatten
-          table.insert(to_insert).run(@conn)
-          delete_ids = to_delete.map do |input|
-            [input.txid, input.vout]
+        def update(txs)
+          ins = r(txs).concat_map do |tx|
+            tx[:account_detail][:outputs]
+              .filter { |out| r.not(out.has_fields(:spent_tx_id)) }
+              .map { |out| merge_defaults(tx[:txid], out) }
           end
-          table.get_all(*delete_ids, index: "txid_and_n").delete.run(@conn)
+          table.insert(ins).run(@conn)
+          # table.get_all([wid, idx], index: "wallet_and_account")
+          # txs.outputs
         end
 
-        def confirm(txids)
-          table.get_all(txids, index: "txid").update(confirmed: true)
+        def find_and_remove_spent
+          spent_ids =
+            r.table("transactions")
+             .get_all([wid, idx], index: "wallet_and_account")
+             .coerce_to("array")
+             .concat_map { |tx| tx[:account_detail][:inputs] }
+             .map { |input| input[:txid] + "." + input[:vout].coerce_to("string") }
+          table.get_all(r.args(spent_ids)).delete.run(@conn)
         end
+
+        # def confirm(txids)
+        #   table.get_all(txids, index: "txid").update(confirmed: true)
+        # end
 
         # accumulate amount from all UTXO is account balance
         def balance
@@ -42,6 +43,13 @@ module ZenWallet
         end
 
         private
+
+        def merge_defaults(txid, out)
+          out.merge(id: txid + "." + out[:n].coerce_to("string"),
+                    wallet: wid,
+                    account: idx,
+                    txid: txid)
+        end
 
         def table
           r.table("utxo")

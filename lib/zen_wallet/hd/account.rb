@@ -75,13 +75,15 @@ module ZenWallet
 
       # Balance from utxo
       def balance
+        # make_insight.balance.total
         @store.utxo.balance
       end
 
       def utxo
-        @store.utxo.load.map do |uh|
-          Insight::Models::Utxo.new(uh.map{ |k, v| [k.to_sym, v] }.to_h)
-        end
+        make_insight.balance.utxo
+        # @store.utxo.load.map do |uh|
+        #   Insight::Models::Utxo.new(uh.map{ |k, v| [k.to_sym, v] }.to_h)
+        # end
       end
 
       # Loads transactions history
@@ -97,22 +99,21 @@ module ZenWallet
 
       def update
         insight = make_insight
+        # fresh_txs = insight.transactions(0, 3).txs
+        # return if @store.transactions.exists?(fresh_txs)
         step = 50
         from, to = 0, step
         loop do
           history = insight.transactions(from, to)
           break if history.count.zero?
           new_txs = @store.transactions.compare_and_save(history.txs)
-          @store.utxo.update_from_txs(new_txs) unless new_txs.empty?
+          @store.utxo.update(new_txs) unless new_txs.empty?
           from, to = [from, to].map { |i| i + step }
-          now_used = new_txs.map(&:used_addresses).flatten
+          now_used = new_txs.map { |tx| tx["used_addresses"] }.flatten
           @registry.ensure_has_txs_mark(now_used)
-          confirmed_txs = history.txs.select(&:confirmed)
-          updated_ids = @store.transactions
-                              .update_confirmations(confirmed_txs.map(&:to_h))
-          @store.utxo.confirm(updated_ids) unless updated_ids.empty?
           break if new_txs.length < history.txs.length || from >= history.count
         end
+        @store.utxo.find_and_remove_spent
         @registry.fill_gap_limit
       end
 

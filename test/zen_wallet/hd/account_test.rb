@@ -14,7 +14,7 @@ module ZenWallet
         @address_repo = mock
         @store = mock
         @store.responds_like_instance_of(Store)
-        @container.register("store", @store)
+        @container.register("rethinkdb", mock)
         @container.register("address_repo", @address_repo)
         @model = @acc_balance_model
         @account = Account.new(@container, @model)
@@ -22,6 +22,7 @@ module ZenWallet
         @registry = mock
         @registry.responds_like_instance_of(Account::Registry)
         @account.instance_variable_set("@registry", @registry)
+        @account.instance_variable_set("@store", @store)
         @transactions = mock
         @transactions.responds_like_instance_of(Store::Transactions)
         @store.stubs(:transactions).returns(@transactions)
@@ -78,26 +79,29 @@ module ZenWallet
         page = Struct.new(:txs, :count, :from, :to)
         # updates in cycle. breaks if last page
         txs = [tx.new("0", ["0"]), tx.new("1", ["1"])]
-        page1 = page.new(txs, 123, 0, 100)
-        insight.expects(:transactions).with(0, 100).returns(page1)
+        page1 = page.new(txs, 73, 0, 50)
+        insight.expects(:transactions).with(0, 50).returns(page1)
         @transactions.expects(:compare_and_save).with(txs).returns(txs)
-        @utxo.expects(:update_from_txs).with(txs)
+        @utxo.expects(:update).with(txs)
         @registry.expects(:ensure_has_txs_mark).with(%w(0 1))
-        page2 = page.new(txs, 123, 100, 200)
-        insight.expects(:transactions).with(100, 200).returns(page2)
+        page2 = page.new(txs, 73, 50, 100)
+        insight.expects(:transactions).with(50, 100).returns(page2)
         @transactions.expects(:compare_and_save).with(txs).returns(txs)
-        @utxo.expects(:update_from_txs).with(txs)
+        @utxo.expects(:update).with(txs)
         @registry.expects(:ensure_has_txs_mark).with(%w(0 1))
+        # after all
+        @utxo.expects(:find_and_remove_spent)
         @registry.expects(:fill_gap_limit)
         @account.update
         # breaks if new_txs list less when page
         txs = [tx.new("tx0", ["0"]), tx.new("tx1", ["1"]), tx.new("tx2", ["2"])]
-        page1 = page.new(txs, 123, 0, 100)
-        insight.expects(:transactions).with(0, 100).returns(page1)
+        page1 = page.new(txs, 73, 0, 50)
+        insight.expects(:transactions).with(0, 50).returns(page1)
         @transactions.expects(:compare_and_save).with(txs)
                      .returns([txs[0]])
-        @utxo.expects(:update_from_txs).with([txs[0]])
+        @utxo.expects(:update).with([txs[0]])
         @registry.expects(:ensure_has_txs_mark).with(["0"])
+        @utxo.expects(:find_and_remove_spent)
         @registry.expects(:fill_gap_limit)
         @account.update
       end

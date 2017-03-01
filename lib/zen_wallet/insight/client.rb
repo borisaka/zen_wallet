@@ -33,8 +33,8 @@ module ZenWallet
       def working_uri(endpoint)
         link = testnet? ? Balancer.testnet_api_link : Balancer.mainnet_api_link
         #  = @network.testnet? ? test_net_uri : main_net_uri
-        cleaned = endpoint.gsub(%r{^\/}, "")
-        URI.parse(format("%s%s/%s", link.host_url, link.base_path, cleaned))
+        # cleaned = endpoint.gsub(%r{^\/}, "")
+        URI.parse(format("%s%s%s", link.host_url, link.base_path, endpoint))
       end
 
       def post(endpoint, data)

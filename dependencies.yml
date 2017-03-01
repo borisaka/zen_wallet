@@ -21,8 +21,9 @@ runtime:
 development:
   bundler: ~> 1.13
   faker: ~> 1.7.2
-  minitest: ~> 5.0
   m:
+  minitest: ~> 5.0
+  minitest-hooks:
   ruby_cowsay:
   mocha: ~> 1.2.1
   pry:
