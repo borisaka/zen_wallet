@@ -13,6 +13,7 @@ module ZenWallet
 
         # TODO: test txs
         def compare_and_save(txs)
+          puts "TXS LENGTH: #{txs.length}"
           txs = txs.map(&:to_h)
                    .map { |tx| tx.merge(id: "#{wid}.#{idx}.#{tx[:txid]}") }
           update = r.table("transactions")

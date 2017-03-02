@@ -9,9 +9,7 @@ require_relative "insight/transformation/tx_decorator"
 module ZenWallet
   # Realtime Bitcore insight fettcher
   class Insight
-    include Dry::Monads::Try::Mixin
-    include Dry::Monads::Either::Mixin
-    include Dry::Monads::Maybe::Mixin
+    MAX_PAGE_SIZE = 50
     # https://test-insight.bitpay.com/
     # MAX_ADDRESSES_REQ = 100
     # @param network [BTC::Network] which bitcoin network to connect
@@ -35,6 +33,27 @@ module ZenWallet
                          to: page["to"],
                          count: page["totalItems"],
                          txs: txs)
+    end
+
+    # Smart fetch txs history
+    #  breaks when all pages fetched or block yields nil or empty container
+    def fetch_history
+      from, to = 0, 1
+      loop do
+        # Monkey fiz fibonacci to real life
+        to = 3 if to == 2
+        to = 6 if to == 4
+        puts "FROM #{from} TO: #{to}"
+        if from < to
+          page = transactions(from, to)
+          break if page.txs.length.zero?
+          break unless (yield page.txs)&.length&.positive?
+        else
+          puts "SKIP"
+        end
+        from, to = to, from + [to, MAX_PAGE_SIZE].min
+        # to = to == from ? to + 1 : to
+      end
     end
 
     # Fetch map UTXO

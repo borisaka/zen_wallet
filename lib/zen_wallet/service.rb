@@ -5,6 +5,7 @@ require "sequel"
 require "rom"
 require "rom-repository"
 require "btcruby"
+require "logger"
 require_relative "persistence/repositories/wallet_repo"
 require_relative "persistence/repositories/account_repo"
 require_relative "persistence/repositories/address_repo"
@@ -19,6 +20,7 @@ module ZenWallet
       setting :automigrate, true
       setting :bitcoin_network, :mainnet
       setting :rethinkdb, db: "wallet_db"
+      setting :logger, Logger.new(STDOUT)
     end
 
     class Migrator
@@ -36,16 +38,15 @@ module ZenWallet
       include Dry::Container::Mixin
 
       def initialize(config)
+        register :logger, config.logger
         sequel = Sequel.connect(config.db)
         register :sequel, sequel
         Migrator.new(sequel).run
         rom_config = ROM::Configuration.new(:sql, sequel)
-        logger = Logger.new($STDOUT)
-        logger.level = :debug
         rom_config.auto_registration("#{__dir__}/persistence",
                                      namespace: "ZenWallet::Persistence")
         rom_container = ROM.container(rom_config) do |conf|
-          conf.gateways[:default].use_logger(logger)
+          conf.gateways[:default].use_logger(resolve("logger"))
         end
         register :rom, rom_container
         register_repos

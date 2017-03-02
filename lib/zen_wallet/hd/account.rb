@@ -98,20 +98,20 @@ module ZenWallet
       end
 
       def update
-        insight = make_insight
+        # insight = make_insight
         # fresh_txs = insight.transactions(0, 3).txs
         # return if @store.transactions.exists?(fresh_txs)
-        step = 50
-        from, to = 0, step
-        loop do
-          history = insight.transactions(from, to)
-          break if history.count.zero?
-          new_txs = @store.transactions.compare_and_save(history.txs)
-          @store.utxo.update(new_txs) unless new_txs.empty?
-          from, to = [from, to].map { |i| i + step }
+        # step = 50
+        # from, to = 0, step
+        # loop do
+          # history = insight.transactions(from, to)
+          # break if history.count.zero?
+        make_insight.fetch_history do |txs|
+          new_txs = @store.transactions.compare_and_save(txs)
+          @store.utxo.update(new_txs)
           now_used = new_txs.map { |tx| tx["used_addresses"] }.flatten
           @registry.ensure_has_txs_mark(now_used)
-          break if new_txs.length < history.txs.length || from >= history.count
+          new_txs
         end
         @store.utxo.find_and_remove_spent
         @registry.fill_gap_limit
