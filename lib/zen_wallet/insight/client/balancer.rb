@@ -14,7 +14,7 @@ module ZenWallet
                    ApiLink.new("https://bitcore1.trezor.io", "/api/"),
                    ApiLink.new("https://bitcore2.trezor.io", "/api/"),
                    ApiLink.new("https://bitcore3.trezor.io", "/api/"),
-                   ApiLink.new("https://www.localbitcoinschain.com", "/api")
+                   ApiLink.new("https://www.localbitcoinschain.com", "/api/")
                    ].freeze
         def testnet_api_link
           TESTNET.sample

@@ -43,13 +43,10 @@ module ZenWallet
         # Monkey fiz fibonacci to real life
         to = 3 if to == 2
         to = 6 if to == 4
-        puts "FROM #{from} TO: #{to}"
         if from < to
           page = transactions(from, to)
           break if page.txs.length.zero?
           break unless (yield page.txs)&.length&.positive?
-        else
-          puts "SKIP"
         end
         from, to = to, from + [to, MAX_PAGE_SIZE].min
         # to = to == from ? to + 1 : to
