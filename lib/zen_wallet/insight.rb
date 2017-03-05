@@ -38,16 +38,17 @@ module ZenWallet
     # Smart fetch txs history
     #  breaks when all pages fetched or block yields nil or empty container
     def fetch_history
-      from, to = 0, 1
+      from, to = 0, 3
       loop do
         # Monkey fiz fibonacci to real life
-        to = 3 if to == 2
-        to = 6 if to == 4
+        # to = 6 if to == 3
+        # to = 6 if to == 4
         if from < to
           page = transactions(from, to)
           break if page.txs.length.zero?
           break unless (yield page.txs)&.length&.positive?
         end
+        from = 3 if from.zero?
         from, to = to, from + [to, MAX_PAGE_SIZE].min
         # to = to == from ? to + 1 : to
       end
