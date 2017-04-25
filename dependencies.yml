@@ -1,22 +1,28 @@
 runtime:
   addressable: ~> 2.5.0
   btcruby: ~> 1.6
+  bitcoin-ruby:
   dry-auto_inject: ~> 0.4.2
   dry-configurable: ~> 0.5.0
   dry-equalizer: ~> 0.2.0
-  dry-initializer: ~> 0.11.0
+  # dry-initializer: ~> 0.10.2
   dry-logic: ~> 0.4.1
+  dry-matcher: ~> 0.6.0
   dry-monads: ~> 0.2.1
   dry-types: ~> 0.9.4
   dry-struct: ~> 0.1.1
+  dry-validation: ~> 0.10.5
+  eventmachine:
   faraday: ~> 0.11.0
   rake: ~> 10.0
+  rethinkdb:
   rom: ~> 3.0.1
   rom-repository: ~> 1.0.1
   rom-sql: ~> 1.0.0
   sequel: ~> 4.42
   transproc: ~> 1.0.0
-  rethinkdb:
+  tty-table: ~> 0.8.0
+  rbczmq: ~> 1.7.9
 
 development:
   bundler: ~> 1.13
@@ -24,10 +30,13 @@ development:
   m:
   minitest: ~> 5.0
   minitest-hooks:
+  minitest-rg:
+  minitest-power_assert:
   ruby_cowsay:
   mocha: ~> 1.2.1
   pry:
   pry-byebug:
+  pry-em:
   pry-state:
   pry-doc:
   pry-inline:

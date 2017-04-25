@@ -1,8 +1,8 @@
 # frozen_string_literal: true
-require "zen_wallet/insight"
+#require "zen_wallet/insight"
 require "zen_wallet/bitcoin/tx_helper"
 require_relative "account/registry"
-require_relative "store"
+#require_relative "store"
 # require "zen_wallet/transaction_builder"
 # require_relative "address"
 module ZenWallet
@@ -21,6 +21,7 @@ module ZenWallet
     class Account
       include CommonStructs
       PrivateKeychainRequired = Class.new(StandardError)
+      attr_reader :model, :registry
       # def_delegators :@model, :id, :wallet_id
 
       # @param container [#resolve] IoC container with necessary object
@@ -34,7 +35,7 @@ module ZenWallet
         @network = container.resolve("bitcoin_network")
         @registry = Registry.new(@model, @address_repo, @network,
                                  @keychain.public_keychain)
-        @store = Store.new(container.resolve("rethinkdb"), @model)
+        #@store = Store.new(container.resolve("rethinkdb"), @model)
       end
 
       # flag if account trusted
@@ -79,53 +80,9 @@ module ZenWallet
         @store.utxo.balance
       end
 
-      def utxo
-        make_insight.balance.utxo
-        # @store.utxo.load.map do |uh|
-        #   Insight::Models::Utxo.new(uh.map{ |k, v| [k.to_sym, v] }.to_h)
-        # end
-      end
+      def update_from_chain
 
-      # Loads transactions history
-      def history(from = 0, to = 20)
-        @store.transactions.load(from, to)
-        # make_insight.transactions(from, to)
-        # now_used = history.map { |h| h[:used_addresses] }.flatten.uniq
-        # unless now_used.empty?
-        #   @registry.ensure_has_txs_mark(now_used)
-        #   @registry.fill_gap_limit
-        # end
       end
-
-      def update
-        # insight = make_insight
-        # fresh_txs = insight.transactions(0, 3).txs
-        # return if @store.transactions.exists?(fresh_txs)
-        # step = 50
-        # from, to = 0, step
-        # loop do
-          # history = insight.transactions(from, to)
-          # break if history.count.zero?
-        make_insight.fetch_history do |txs|
-          new_txs = @store.transactions.compare_and_save(txs)
-          @store.utxo.update(new_txs)
-          now_used = new_txs.map { |tx| tx["used_addresses"] }.flatten
-          @registry.ensure_has_txs_mark(now_used)
-          new_txs
-        end
-        @store.utxo.find_and_remove_spent
-        @registry.fill_gap_limit
-      end
-
-      # Current balance of account
-      # it a sum of derived addresses utxos amount
-      # @todo add detalization about txs count, total spent, receives, etc..
-      # @todo discover notmaly
-      # def fetch_and_store_balance
-      #   detailed_balance = insight.balance
-      #   @store.store_balance(@model, detailed_balance.total)
-      #   detailed_balance
-      # end
 
       # Spends money to specified outputs
       # @param outputs [Array<String, Int>]
@@ -152,13 +109,6 @@ module ZenWallet
         update
         txid
       end
-
-      # def update_addresses_from
-      #   fetch_balance&.addresses&.each do |address_obj|
-      #     @registry.ensure_has_txs_mark(address_obj.address)
-      #   end
-      #   @registry.fill_gap_limit
-      # end
 
       private
 

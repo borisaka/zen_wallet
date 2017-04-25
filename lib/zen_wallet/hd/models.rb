@@ -27,7 +27,7 @@ module ZenWallet
       class Address < Dry::Struct
         attribute :address, Types::PKey
         attribute :wallet_id, Types::PKey
-        attribute :account_index, Types::HDIndex
+        attribute :account_id, Types::PKey
         attribute :chain, Types::HDChange
         attribute :index, Types::HDIndex
         attribute :has_txs, Types::Bool.default(false)

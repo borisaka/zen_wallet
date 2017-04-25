@@ -11,7 +11,7 @@ module ZenWallet
         super
         @sequel[:wallets].insert(@wallet_attrs)
         @sequel[:accounts].insert(@acc_balance_attrs)
-        @finders = [WalletConstants::ID, AccConstants::Balance::INDEX]
+        @finders = [WalletConstants::ID, AccConstants::Balance::ID]
       end
 
       def test_create
@@ -69,23 +69,6 @@ module ZenWallet
         assert_equal 0, @repo.last_idx(*@finders, 0)
       end
 
-      # def test_first_by
-      #   assert_nil @repo.first_by(*@finders, 0)
-      #   attrs, models = [], []
-      #   attrs << address_attrs(@acc_balance_model, 0, 0,
-      #                          has_txs: true,
-      #                          requested: true)
-      #   attrs << address_attrs(@acc_balance_model, 0, 1, requested: true)
-      #   attrs << address_attrs(@acc_balance_model, 0, 2)
-      #   attrs.each do |at|
-      #     @dataset.insert(at)
-      #     models << HD::Models::Address.new(at)
-      #   end
-      #   assert_equal models[0], @repo.first_by(*@finders, 0)
-      #   assert_equal models[1], @repo.first_by(*@finders, 0, has_txs: false)
-      #   assert_equal models[2], @repo.first_by(*@finders, 0, requested: false)
-      # end
-
       def test_update_address
         attrs = (0..99).map { |i| address_attrs(@acc_balance_model, 0, i) }
         @dataset.import(attrs.first.keys, attrs.map(&:values))
@@ -96,20 +79,13 @@ module ZenWallet
       end
 
       def test_pluck_address
-        # ext, int = [], []
         ext_chain = (0..60).map { |i| address_attrs(@acc_balance_model, 0, i) }
         int_chain = (0..60).map { |i| address_attrs(@acc_balance_model, 1, i) }
         all = int_chain + ext_chain
         @dataset.import(all.first.keys, all.map(&:values))
-        # all.each { |addr| @dataset.insert(addr.to_h) }
-        # limited = int_chain.map { |attrs| attrs[:address] }.sort.reverse[0..39]
-        # w_offset = ext_chain.map { |attrs| attrs[:address] }
-        #                     .sort.reverse[39..-1]
         expected_ext = ext_chain.map { |h| h[:address] }.sort
         assert_equal expected_ext,
                      @repo.pluck_address(*@finders, 0, chain: 0).sort
-        # assert_equal w_offset,
-        #              @repo.pluck_address(*@finders, 40, chain: 1).sort
       end
 
       def test_free_address
@@ -118,6 +94,21 @@ module ZenWallet
         assert_equal attrs.last[:address], @repo.free_address(*@finders, 0)
         @dataset.where { index > 5 }.update(has_txs: true)
         assert_equal attrs[5][:address], @repo.free_address(*@finders, 0)
+      end
+
+      def test_find_account_ids
+        @sequel[:accounts].insert(@acc_payments_attrs)
+        attrs = [
+          address_attrs(@acc_balance_model, 0, 0),
+          address_attrs(@acc_payments_model, 0, 0),
+          address_attrs(@acc_balance_model, 0, 1)
+        ]
+        attrs.each { |addr| @dataset.insert(addr) }
+        addrs = attrs.map { |addr| addr[:address] }
+        expected = [{ wallet_id: WalletConstants::ID, id: AccConstants::Balance::ID, address: addrs[0] },
+                    { wallet_id: WalletConstants::ID, id: AccConstants::Payments::ID, address: addrs[1] },
+                    { wallet_id: WalletConstants::ID, id: AccConstants::Balance::ID, address: addrs[2] }].sort_by { |o| o[:address] }
+        assert_equal expected, @repo.find_account_ids(addrs)
       end
 
     end

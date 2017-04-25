@@ -6,6 +6,11 @@ module ZenWallet
   module Persistence
     # Repo for account
     class AccountRepo < ROM::Repository[:accounts]
+
+      def to_update
+        root.to_a
+      end
+
       # Find by pair wallet_id, id
       # @return [HD::Models::Account]
       # @return nil

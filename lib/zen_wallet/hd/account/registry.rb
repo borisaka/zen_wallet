@@ -30,9 +30,9 @@ module ZenWallet
         # Pregenerate all GAP limited addresses for possible discovery
         def fill_gap_limit
           [EXTERNAL_CHAIN, INTERNAL_CHAIN].each do |chain|
-            gap_size = @repo.count(wid, idx, chain, has_txs: false)
+            gap_size = @repo.count(wid, aid, chain, has_txs: false)
             gap_size.upto(GAP_LIMIT - 1) do
-              index = @repo.last_idx(wid, idx, chain)&.+(1)
+              index = @repo.last_idx(wid, aid, chain)&.+(1)
               index ||= 0
               create_address(chain, index)
             end
@@ -41,7 +41,7 @@ module ZenWallet
 
         # Select unused address for chain. if possible not requested
         def free_address(chain)
-          @repo.free_address(wid, idx, chain)
+          @repo.free_address(wid, aid, chain)
         end
 
         # Mark address as requested unless alreadt
@@ -57,7 +57,7 @@ module ZenWallet
         # pluck array of addresses strings
         # @return [Array<Sring>]
         def pluck_addresses(offset: 0, **filters)
-          @repo.pluck_address(wid, idx, offset, **filters)
+          @repo.pluck_address(wid, aid, offset, **filters)
         end
 
         private
@@ -66,7 +66,7 @@ module ZenWallet
         def create_address(chain, index)
           addr = gen_address(chain, index)
           model = Models::Address.new(
-            wallet_id: wid, account_index: idx, chain: chain, index: index,
+            wallet_id: wid, account_id: aid, chain: chain, index: index,
             address: addr, has_txs: false, requested: false
           )
           @repo.create(model)
@@ -89,8 +89,8 @@ module ZenWallet
           @account.wallet_id
         end
 
-        def idx
-          @account.index
+        def aid
+          @account.id
         end
       end
     end

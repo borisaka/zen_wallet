@@ -8,13 +8,27 @@ module ZenWallet
     class AddressRepo < ROM::Repository[:addresses]
       commands :create
       Model = HD::Models::Address
+
+      def all
+        root.select(:address).to_a.map(&:address)
+      end
+
       def find(addrs)
         query = root.by_pk(addrs).as(Model)
         addrs.is_a?(Array) ? query.to_a : query.one
       end
 
-      def count(wallet_id, account_index, chain, **filters)
-        root.by_account(wallet_id, account_index)
+      def find_account_ids(addrs)
+        root.by_pk(addrs)
+            .dataset
+            .join(:accounts, :accounts__wallet_id => :addresses__wallet_id, :accounts__id => :account_id)
+            .select(:accounts__wallet_id, :accounts__id, :address)
+            .distinct
+            .all
+      end
+
+      def count(wallet_id, account_id, chain, **filters)
+        root.by_account(wallet_id, account_id)
             .with_chain(chain)
             .where(filters).count
       end
@@ -25,15 +39,8 @@ module ZenWallet
             .order(:index)
             .pluck(:index).last
       end
-      #
-      # def first_by(wallet_id, account_index, chain, **filters)
-      #   root.by_account(wallet_id, account_index)
-      #       .with_chain(chain)
-      #       .where(filters)
-      #       .order(:index).as(Model).first
-      # end
 
-      def pluck_address(wallet_id, account_index, offset, **filters)
+      def pluck_address(wallet_id, account_index, offset = 0, **filters)
         query = root.select(:address).by_account(wallet_id, account_index)
                     .order(:index).reverse
                     .offset(offset)

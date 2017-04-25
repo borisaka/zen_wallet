@@ -6,10 +6,6 @@ require "rom"
 require "rom-repository"
 require "btcruby"
 require "logger"
-require_relative "persistence/repositories/wallet_repo"
-require_relative "persistence/repositories/account_repo"
-require_relative "persistence/repositories/address_repo"
-require_relative "hd/store"
 
 module ZenWallet
   # Stores wallets and addresses in database
@@ -39,7 +35,7 @@ module ZenWallet
 
       def initialize(config)
         register :logger, config.logger
-        sequel = Sequel.connect(config.db)
+        sequel = Sequel.connect(config.db, loggers: config.logger)
         register :sequel, sequel
         Migrator.new(sequel).run
         rom_config = ROM::Configuration.new(:sql, sequel)
@@ -51,15 +47,17 @@ module ZenWallet
         register :rom, rom_container
         register_repos
         register :bitcoin_network, BTC::Network.send(config.bitcoin_network)
-        rethink = RethinkDB::Connection.new(config.rethinkdb)
-        register :rethinkdb, rethink
-        HD::Store::Migrator.new(rethink).migrate
+        #rethink = RethinkDB::Connection.new(config.rethinkdb)
+        #register :rethinkdb, rethink
+        #HD::Store::Migrator.new(rethink).migrate
       end
 
       def register_repos
-        register(:wallet_repo, Persistence::WalletRepo.new(resolve(:rom)))
-        register(:account_repo, Persistence::AccountRepo.new(resolve(:rom)))
-        register(:address_repo, Persistence::AddressRepo.new(resolve(:rom)))
+        Dir.glob(File.join(__dir__, "persistence", "repositories", "*_repo.rb")).each do |file|
+          name = File.basename(file, ".rb")
+          require_relative "persistence/repositories/#{name}"
+          register(name.to_sym, Persistence.const_get(Inflecto.camelize(name)).new(resolve(:rom)))
+        end
       end
     end
 

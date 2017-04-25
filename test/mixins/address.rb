@@ -21,7 +21,7 @@ module ZenWallet
       {
         address: addr,
         wallet_id: acc_model.wallet_id,
-        account_index: acc_model.index,
+        account_id: acc_model.id,
         chain: chain,
         index: index,
         has_txs: has_txs,

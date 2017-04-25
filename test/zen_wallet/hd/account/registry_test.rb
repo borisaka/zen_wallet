@@ -16,7 +16,7 @@ module ZenWallet
           @keychain = account_keychain(@acc_balance_model)
           @subject = Registry.new(@account, @repo, @network, @keychain)
           @wid = @account.wallet_id
-          @idx = @account.index
+          @aid = @account.id
         end
 
         def test_create_address
@@ -38,7 +38,7 @@ module ZenWallet
           chain = 0
           mock_loop = lambda do |i|
             lst = i.positive? ? i - 1 : nil
-            @repo.expects(:last_idx).with(@wid, @idx, chain)
+            @repo.expects(:last_idx).with(@wid, @aid, chain)
                  .returns(lst)
             model = address_model(@account, chain, i)
             @repo.expects(:create).with(equals(model))
@@ -46,17 +46,17 @@ module ZenWallet
           20.times(&mock_loop)
           chain = 1
           5.times(&mock_loop)
-          @repo.expects(:count).with(@wid, @idx, 0, has_txs: false).returns(0)
-          @repo.expects(:count).with(@wid, @idx, 1, has_txs: false).returns(15)
+          @repo.expects(:count).with(@wid, @aid, 0, has_txs: false).returns(0)
+          @repo.expects(:count).with(@wid, @aid, 1, has_txs: false).returns(15)
           @subject.fill_gap_limit
-          # @repo.expects(:count).with(@wid, @idx, 1, has_txs: false).returns(15)
+          #@repo.expects(:count).with(@wid, @aid, 1, has_txs: false).returns(15)
         end
 
         def test_free_address
           # If has not requested
           expected = address_model(@account, 0, 10)
           @repo.expects(:free_address)
-               .with(@wid, @idx, 0)
+               .with(@wid, @aid, 0)
                .returns(expected)
           assert_equal expected, @subject.free_address(0)
         end
@@ -85,10 +85,10 @@ module ZenWallet
         def test_pluck_addresses
           addrs = (0..4).map { |i| address_model(@acc_balance_model, 0, i) }
           @repo.expects(:pluck_address)
-               .with(@wid, @idx, 0, chain: 0).returns(addrs)
+               .with(@wid, @aid, 0, chain: 0).returns(addrs)
           assert_equal addrs, @subject.pluck_addresses(chain: 0)
           @repo.expects(:pluck_address)
-               .with(@wid, @idx, 20, {}).returns(addrs)
+               .with(@wid, @aid, 20, {}).returns(addrs)
           assert_equal addrs, @subject.pluck_addresses(offset: 20)
         end
 

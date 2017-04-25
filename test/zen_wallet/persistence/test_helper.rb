@@ -5,8 +5,11 @@ require "zen_wallet/service"
 module PersistenceMixin
   def before_setup
     super
-    # binding.pry
-    @container = ZenWallet::Service.container
+    @container = ZenWallet::Service.container do |cfg|
+      logger = Logger.new(STDOUT)
+      logger.level = Logger::INFO
+      cfg.logger = logger
+    end
     @sequel = @container.resolve("sequel")
     @dataset = @sequel[table_name]
   end
@@ -45,5 +48,26 @@ class RepoTest < Minitest::Test
 
   def repo_name
     Inflecto.singularize(table_name) + "_repo"
+  end
+end
+
+module ZenWallet
+  module TxAccountTestMixin
+    def test_tx_account_amount
+      wid = WalletConstants::ID
+      bid = AccConstants::Balance::ID
+      pid = AccConstants::Payments::ID
+      assert_equal 0, @repo.tx_account_amount(@attrs[:txid], wid, bid)
+      @dataset.update(wallet_id:  wid, account_id: bid)
+      @dataset.insert(@attrs.merge(wallet_id: wid, account_id: pid, amount: 30_000, index: 1).merge(custom_args))
+      @dataset.insert(@attrs.merge(wallet_id: wid, account_id: bid, amount: 40_000, index: 2).merge(custom_args))
+      assert_equal 50_000, @repo.tx_account_amount(@attrs[:txid], wid, bid)
+    end
+
+    private
+
+    def custom_args
+      {}
+    end
   end
 end

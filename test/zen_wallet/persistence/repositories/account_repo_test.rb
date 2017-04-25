@@ -48,6 +48,12 @@ module ZenWallet
                      @repo.persist(@acc_payments_ch_model)
         assert_equal @acc_payments_ch_attrs, @dataset.first
       end
+
+      def test_to_update
+        [@acc_balance_attrs, @acc_payments_attrs].map { |attrs| @sequel[:accounts].insert(attrs) }
+        assert_equal 2, @repo.to_update.length
+      end
+
     end
   end
 end

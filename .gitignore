@@ -10,4 +10,5 @@
 *.DS_Store
 .versions.conf
 .pryrc
+.pry.d
 .var

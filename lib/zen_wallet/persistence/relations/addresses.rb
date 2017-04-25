@@ -3,10 +3,14 @@ module ZenWallet
     class Addresses < ROM::Relation[:sql]
       register_as :addresses
       dataset :addresses
-      schema(infer: true)
+      schema(infer: true) do
+        associations do
+          belongs_to :account
+        end
+      end
 
-      def by_account(wallet_id, account_index)
-        where(wallet_id: wallet_id, account_index: account_index)
+      def by_account(wallet_id, account_id)
+        where(wallet_id: wallet_id, account_id: account_id)
       end
 
       def with_chain(chain)

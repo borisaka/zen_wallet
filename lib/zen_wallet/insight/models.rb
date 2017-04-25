@@ -25,6 +25,8 @@ module ZenWallet
         attribute :address, Types::Coercible::String
         attribute :type, Types::Coercible::String
         attribute :script, Types::Coercible::String
+        # attribute :spent_txid, Types::Coercible::String.optional
+        # attribute :spent_n, Types::Coercible::Integer.optional
       end
 
       # Bitcoin Tx

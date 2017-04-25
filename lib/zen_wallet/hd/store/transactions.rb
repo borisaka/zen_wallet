@@ -24,6 +24,10 @@ module ZenWallet
                           .run(@conn)
         end
 
+        def select(txids)
+          r.table("transactions").get_all(r.attrs(txids, index: "txid"))
+        end
+
         # def exists?(txs)
         #   ids = txs.map(&:to_h, )
         # end

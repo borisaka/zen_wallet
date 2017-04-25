@@ -30,9 +30,11 @@ module ZenWallet
           db = @conn.default_db
           r.db_create(db).run(@conn) unless r.db_list.run(@conn).include?(db)
           @tables = r.table_list.run(@conn)
+          # create_table_unless_exists("blocks")
           create_table_unless_exists("accounts")
           create_table_unless_exists("transactions")
           create_table_unless_exists("utxo")
+          # create_index_unless_exists("blocks", "time")
           create_index_unless_exists("transactions", "watx") do |doc|
             [doc["wallet"], doc["account"], doc["txid"]]
           end
