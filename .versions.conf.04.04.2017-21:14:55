@@ -1,0 +1,4 @@
+ruby=ruby-2.4.1
+ruby-gemset=zen_wallet
+#ruby-gem-install=bundler rake
+#ruby-bundle-install=true

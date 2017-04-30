@@ -105,10 +105,11 @@ module ZenWallet
         ]
         attrs.each { |addr| @dataset.insert(addr) }
         addrs = attrs.map { |addr| addr[:address] }
-        expected = [{ wallet_id: WalletConstants::ID, id: AccConstants::Balance::ID, address: addrs[0] },
-                    { wallet_id: WalletConstants::ID, id: AccConstants::Payments::ID, address: addrs[1] },
-                    { wallet_id: WalletConstants::ID, id: AccConstants::Balance::ID, address: addrs[2] }].sort_by { |o| o[:address] }
-        assert_equal expected, @repo.find_account_ids(addrs)
+        expected = [{ wallet_id: WalletConstants::ID, account_id: AccConstants::Balance::ID, address: addrs[0] },
+                    { wallet_id: WalletConstants::ID, account_id: AccConstants::Payments::ID, address: addrs[1] },
+                    { wallet_id: WalletConstants::ID, account_id: AccConstants::Balance::ID, address: addrs[2] }]
+                   .sort_by { |o| o[:address] }
+        assert_equal expected, @repo.find_account_ids(addrs).map(&:to_h)
       end
 
     end

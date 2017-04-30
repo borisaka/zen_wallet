@@ -1,0 +1,52 @@
+require "pry"
+require "zmq"
+require "btcruby"
+
+#socket = ctx.socket(:REQ)
+#socket.connect(endpoint)
+#socket.linger = 1
+
+WrongStatusCode = Class.new(StandardError)
+TxHeader = Struct.new(:zmq_hash, :id, :height)
+
+def connect
+  ctx = ZMQ::Context.new
+  endpoint = "tcp://50.244.13.28:19091"
+  socket = ctx.connect(:DEALER, endpoint)
+  socket.verbose = true
+  socket
+end
+
+def request(cmd, payload)
+  socket = connect
+  #request = "blockchain.fetch_last_height"
+  msg = ZMQ::Message.new
+  msg.add(ZMQ::Frame(cmd))
+  msg.add(ZMQ::Frame([rand(254)].pack("V")))
+  msg.add(ZMQ::Frame(payload))
+  socket.send_message(msg)
+  buf = StringIO.new(socket.recv_message.last.data)
+  status = buf.gets(4).unpack("V")[0]
+  raise WrongStatusCode unless status.zero?
+  buf
+end
+
+def fetch_history(addr)
+  address = BTC::PublicKeyAddress.new(string: addr, network: BTC::Network.testnet)
+  io = request("blockchain.fetch_history2", address.data_for_base58check_encoding + [0].pack("V"))
+  history = []
+  until io.eof? do
+    chunk = io.gets(49)
+     _, hash, _, height = chunk.unpack("CA32VV")
+    history << TxHeader.new(hash, hash.unpack("h*")[0].reverse, height)
+  end
+  history
+end
+
+def fetch_transaction(tx)
+  io = request("blockchain.fetch_transaction")
+end
+
+addr = "mmKZdz6H434VQoPSJLfG19so8sLPu5edpN"
+txs_headers = fetch_history(addr)
+puts txs.map(&:to_h).inspect

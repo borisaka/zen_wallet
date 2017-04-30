@@ -19,12 +19,11 @@ module ZenWallet
       end
 
       def find_account_ids(addrs)
-        root.by_pk(addrs)
-            .dataset
-            .join(:accounts, :accounts__wallet_id => :addresses__wallet_id, :accounts__id => :account_id)
-            .select(:accounts__wallet_id, :accounts__id, :address)
-            .distinct
-            .all
+        root
+          .by_pk(addrs)
+          .join(:accounts, :wallet_id => :wallet_id, :id => :account_id)
+          .select { [wallet_id.qualified, account_id.qualified, address] }
+          .distinct.to_a
       end
 
       def count(wallet_id, account_id, chain, **filters)

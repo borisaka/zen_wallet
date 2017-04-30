@@ -32,6 +32,8 @@ module ZenWallet
         @model = model
         @keychain = BTC::Keychain.new(extended_key: @model.xprv || @model.xpub)
         @address_repo = container.resolve("address_repo")
+        @tx_output_repo = container.resolve("tx_output_repo")
+        @tx_history_repo = container.resolve("tx_history_repo")
         @network = container.resolve("bitcoin_network")
         @registry = Registry.new(@model, @address_repo, @network,
                                  @keychain.public_keychain)
@@ -111,6 +113,10 @@ module ZenWallet
       end
 
       private
+
+      def utxo
+        @tx_output_repo.utxo(@model.wallet_id, @model.id)
+      end
 
       def provide_keys(addresses, prv_keychain)
         touple_kls = Struct.new(:address, :key)

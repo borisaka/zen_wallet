@@ -8,7 +8,7 @@ module ZenWallet
     class AccountRepo < ROM::Repository[:accounts]
 
       def to_update
-        root.to_a
+        root.where(id: %w(store service)).to_a
       end
 
       # Find by pair wallet_id, id
